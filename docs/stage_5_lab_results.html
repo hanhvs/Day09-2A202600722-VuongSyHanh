@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stage 5 — Lab Results &amp; Latency Optimization</title>
+<style>
+  :root {
+    --bg: #0f1419;
+    --panel: #1a1f2e;
+    --panel-2: #232936;
+    --border: #2d3748;
+    --text: #e2e8f0;
+    --text-dim: #94a3b8;
+    --accent: #60a5fa;
+    --accent-2: #a78bfa;
+    --green: #34d399;
+    --orange: #fb923c;
+    --red: #f87171;
+    --yellow: #fbbf24;
+    --code-bg: #0d1117;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+  }
+  .container { max-width: 1000px; margin: 0 auto; padding: 40px 24px 80px; }
+  header {
+    text-align: center;
+    padding: 40px 24px 28px;
+    background: linear-gradient(135deg, #134e4a 0%, #1e3a8a 100%);
+    border-radius: 16px;
+    margin-bottom: 32px;
+  }
+  header h1 { font-size: 2.2rem; margin: 0 0 8px; letter-spacing: -0.02em; }
+  header .subtitle { color: #d1fae5; font-size: 1.05rem; margin: 0; }
+  header .meta {
+    margin-top: 14px;
+    display: inline-flex;
+    gap: 20px;
+    color: #d1fae5;
+    font-size: 0.92rem;
+  }
+  header .meta span::before { content: "• "; color: var(--yellow); }
+  header .meta span:first-child::before { content: ""; }
+
+  section {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 26px 30px;
+    margin-bottom: 22px;
+  }
+  section h2 {
+    margin: 0 0 14px;
+    color: var(--accent);
+    font-size: 1.45rem;
+    border-bottom: 2px solid var(--border);
+    padding-bottom: 10px;
+  }
+  section h3 {
+    color: var(--accent-2);
+    margin: 20px 0 10px;
+    font-size: 1.12rem;
+  }
+  section h4 {
+    color: var(--yellow);
+    margin: 14px 0 6px;
+    font-size: 1rem;
+  }
+  p { margin: 8px 0; }
+  ul li, ol li { margin: 3px 0; }
+
+  code {
+    background: var(--code-bg);
+    color: #e6edf3;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.9em;
+  }
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    overflow-x: auto;
+    font-size: 0.86rem;
+    line-height: 1.55;
+  }
+  pre code { background: transparent; padding: 0; }
+
+  .ascii {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 18px;
+    font-family: "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.86rem;
+    line-height: 1.55;
+    white-space: pre;
+    overflow-x: auto;
+    color: #cbd5e1;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 14px 0;
+    background: var(--panel-2);
+    border-radius: 8px;
+    overflow: hidden;
+    font-size: 0.95rem;
+  }
+  th, td {
+    padding: 9px 13px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  th { background: #2d3748; color: var(--accent); font-weight: 600; }
+  tr:last-child td { border-bottom: none; }
+  td.ok { color: var(--green); font-weight: 600; }
+  td.fail { color: var(--red); font-weight: 600; }
+  td.warn { color: var(--orange); font-weight: 600; }
+
+  .info-box {
+    background: rgba(96, 165, 250, 0.08);
+    border-left: 4px solid var(--accent);
+    border-radius: 6px;
+    padding: 10px 16px;
+    margin: 14px 0;
+  }
+  .info-box.tip { background: rgba(52, 211, 153, 0.08); border-left-color: var(--green); }
+  .info-box.warn { background: rgba(251, 146, 60, 0.08); border-left-color: var(--orange); }
+  .info-box.bonus { background: rgba(251, 191, 36, 0.08); border-left-color: var(--yellow); }
+  .info-box.win { background: rgba(52, 211, 153, 0.12); border-left-color: var(--green); }
+
+  .ex-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 8px;
+  }
+  .pass-tag {
+    background: var(--green);
+    color: var(--bg);
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 0.85rem;
+  }
+
+  .latency-card {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 14px;
+    margin: 16px 0;
+  }
+  .latency-card .card {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 18px;
+    text-align: center;
+  }
+  .latency-card .card.baseline { border-left: 4px solid var(--red); }
+  .latency-card .card.v1 { border-left: 4px solid var(--orange); }
+  .latency-card .card.v2 { border-left: 4px solid var(--green); }
+  .latency-card .card .label { font-size: 0.85rem; color: var(--text-dim); }
+  .latency-card .card .value {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin: 6px 0;
+  }
+  .latency-card .card.baseline .value { color: var(--red); }
+  .latency-card .card.v1 .value { color: var(--orange); }
+  .latency-card .card.v2 .value { color: var(--green); }
+  .latency-card .card .delta { font-size: 0.8rem; color: var(--text-dim); }
+
+  .bar-chart {
+    margin: 16px 0;
+    font-family: "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.88rem;
+  }
+  .bar-chart .row { display: flex; align-items: center; gap: 10px; margin: 6px 0; }
+  .bar-chart .label { min-width: 130px; color: var(--text-dim); }
+  .bar-chart .bar { height: 28px; border-radius: 4px; display: flex; align-items: center; padding-left: 10px; color: var(--bg); font-weight: 700; }
+  .bar-chart .bar.b { background: var(--red); }
+  .bar-chart .bar.v1 { background: var(--orange); }
+  .bar-chart .bar.v2 { background: var(--green); }
+
+  footer {
+    text-align: center;
+    color: var(--text-dim);
+    padding: 26px 16px;
+    font-size: 0.92rem;
+  }
+
+  @media (max-width: 700px) {
+    header h1 { font-size: 1.6rem; }
+    section { padding: 18px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+<header>
+  <h1>Stage 5 — Lab Results &amp; Latency Optimization</h1>
+  <p class="subtitle">Kết quả thực nghiệm: 3 bài tập thực hành + bài cộng điểm tối ưu latency</p>
+  <div class="meta">
+    <span>Date: 2026-06-09</span>
+    <span>Provider: OpenAI gpt-4o-mini</span>
+    <span>Hệ thống: 5 services local</span>
+  </div>
+</header>
+
+<section>
+  <h2>1. Setup hệ thống</h2>
+  <p>Đã start cả 5 services bằng <strong>venv Python</strong> (system Python không có <code>a2a-sdk</code>):</p>
+<pre><code>.venv/bin/python -m registry           # port 10000
+.venv/bin/python -m tax_agent          # port 10102
+.venv/bin/python -m compliance_agent   # port 10103
+.venv/bin/python -m law_agent          # port 10101
+.venv/bin/python -m customer_agent     # port 10100</code></pre>
+
+  <div class="info-box warn">
+    <strong>⚠️ Bug phát hiện khi setup:</strong> Lần chạy đầu fail với <code>ModuleNotFoundError: No module named 'a2a'</code> vì <code>start_all.sh</code> dùng <code>python</code> (system pyenv 3.12.3) thay vì <code>.venv/bin/python</code>. Stage 1-4 dùng các package có sẵn ở system, nhưng Stage 5 cần <code>a2a-sdk</code> trong project venv.
+  </div>
+
+  <p>Verify 4 agents registered:</p>
+<pre><code>$ curl http://localhost:10000/agents
+{
+  "agents": [
+    {"agent_name": "tax-agent", "endpoint": "http://localhost:10102",
+     "tasks": ["tax_question"]},
+    {"agent_name": "compliance-agent", "endpoint": "http://localhost:10103",
+     "tasks": ["compliance_question"]},
+    {"agent_name": "law-agent", "endpoint": "http://localhost:10101",
+     "tasks": ["legal_question"]},
+    {"agent_name": "customer-agent", "endpoint": "http://localhost:10100",
+     "tasks": []}
+  ]
+}</code></pre>
+</section>
+
+<section>
+  <h2>2. Baseline — đo Latency</h2>
+  <p>Câu hỏi test (từ <code>test_client.py</code>):</p>
+  <div class="info-box">
+    <em>"If a company breaks a contract and avoids taxes, what are the legal and regulatory consequences?"</em>
+  </div>
+
+  <div class="info-box win">
+    <strong>⏱️ Baseline latency: <span style="color: var(--red); font-size: 1.3em;">69.93s</span></strong>
+  </div>
+
+  <h3>Timing breakdown từ logs</h3>
+<pre><code>17:24:12 customer_agent  CustomerAgent executing (depth=0, trace=7dd8b15f...)
+17:24:15 customer_agent  delegate_to_legal_agent  (~3s — LLM picked the tool)
+17:24:16 law_agent       LawAgent executing (depth=1)
+17:24:39 law_agent       Routing decision: needs_tax=True needs_compliance=True
+                         ← 23s for analyze_law + check_routing SEQUENTIAL
+17:24:47 law_agent       Compliance Agent returned 3542 chars
+17:24:51 law_agent       Tax Agent returned 3660 chars   (~12s parallel)
+... aggregate ~ 18s
+17:25:22 done</code></pre>
+
+  <p>Total ~70s vì <strong>4 LLM calls tuần tự</strong> ở Law Agent: analyze_law → check_routing → wait specialists → aggregate.</p>
+</section>
+
+<section>
+  <h2>3. Bài 5.1 — Trace request flow</h2>
+  <div class="ex-header">
+    <h3 style="margin:0;">Mục tiêu: tìm <code>trace_id</code> chung trong 4 agent logs</h3>
+    <span class="pass-tag">✅ PASS</span>
+  </div>
+
+  <p>Cùng <strong>1 trace_id</strong> (<code>7dd8b15f-f8c6-49d3-a621-6bfad06da08d</code>) xuất hiện trong 4 logs:</p>
+
+  <table>
+    <thead><tr><th>Agent</th><th>Trace</th><th>Depth</th><th>Đoạn log</th></tr></thead>
+    <tbody>
+      <tr><td>customer</td><td>7dd8b15f...</td><td>0</td><td>CustomerAgent executing</td></tr>
+      <tr><td>customer</td><td>7dd8b15f...</td><td>0</td><td>delegate_to_legal_agent</td></tr>
+      <tr><td>law</td><td>7dd8b15f...</td><td>1</td><td>LawAgent executing</td></tr>
+      <tr><td>tax</td><td>7dd8b15f...</td><td>2</td><td>TaxAgent executing</td></tr>
+      <tr><td>compliance</td><td>7dd8b15f...</td><td>2</td><td>ComplianceAgent executing</td></tr>
+    </tbody>
+  </table>
+
+  <p>Registry log ghi 3 lượt <code>discover</code>:</p>
+<pre><code>Discovered agent 'law-agent'        for task 'legal_question'
+Discovered agent 'tax-agent'        for task 'tax_question'
+Discovered agent 'compliance-agent' for task 'compliance_question'</code></pre>
+
+  <h3>Sequence diagram</h3>
+  <div class="ascii">User → test_client.py
+         │
+         │ A2A /send_message
+         ▼
+   Customer Agent (10100)  depth=0  ──┐
+         │                            │ generate trace_id
+         │ 1. discover("legal_question") → Registry
+         │ 2. A2A → Law Agent
+         ▼
+    Law Agent (10101)  depth=1
+         │
+         │ analyze_law (LLM)
+         │ check_routing (LLM)
+         │
+         ├──── Send(call_tax) ──┐
+         │                       │ discover("tax_question")
+         │                       │ A2A → Tax Agent (10102) depth=2
+         │
+         └──── Send(call_compliance) ──┐
+                                        │ discover("compliance_question")
+                                        │ A2A → Compliance (10103) depth=2
+                                        │
+                                        ▼
+                                  ┌─ both return ─┐
+                                  │               │
+                                  ▼               ▼
+                             aggregate (LLM)
+                                  │
+                                  ▼
+                           response → Customer
+                                  │
+                                  ▼
+                              User</div>
+</section>
+
+<section>
+  <h2>4. Bài 5.2 — Test dynamic discovery</h2>
+  <div class="ex-header">
+    <h3 style="margin:0;">Mục tiêu: kill Tax Agent → quan sát hệ thống xử lý</h3>
+    <span class="pass-tag">✅ PASS</span>
+  </div>
+
+  <p>Đã kill Tax Agent (<code>kill -9 $(lsof -t -iTCP:10102)</code>), chạy lại <code>test_client.py</code>.</p>
+
+  <h4>Quan sát 1 — Registry vẫn trả endpoint stale</h4>
+<pre><code>$ curl http://localhost:10000/discover/tax_question
+{
+  "agent_name": "tax-agent",
+  "endpoint": "http://localhost:10102",       ← stale!
+  "description": "Specialist tax attorney..."
+}</code></pre>
+
+  <p>→ Registry không có healthcheck. Trong production cần thêm TTL hoặc periodic ping.</p>
+
+  <h4>Quan sát 2 — Law Agent catch exception</h4>
+<pre><code>2026-06-09 17:35:43 [law_agent] ERROR call_tax failed: All connection attempts failed</code></pre>
+
+  <p>Code trong <code>law_agent/graph.py</code>:</p>
+<pre><code>async def call_tax(state: LawState) -> dict:
+    try:
+        endpoint = await discover("tax_question")
+        result = await delegate(endpoint, question, ...)
+        return {"tax_result": result}
+    except Exception as exc:
+        logger.exception("call_tax failed: %s", exc)
+        return {"tax_result": f"[Tax analysis unavailable: {exc}]"}   # ← graceful</code></pre>
+
+  <h4>Quan sát 3 — Hệ thống vẫn trả lời được</h4>
+  <table>
+    <thead><tr><th>State</th><th>Latency</th><th>Quality</th></tr></thead>
+    <tbody>
+      <tr><td>Tax Agent UP (baseline)</td><td>69.93s</td><td>Đầy đủ Law + Tax + Compliance</td></tr>
+      <tr><td>Tax Agent DOWN</td><td class="warn">51.57s</td><td>Law + Compliance (mất phần Tax chi tiết)</td></tr>
+    </tbody>
+  </table>
+
+  <div class="info-box tip">
+    <strong>💡 Graceful degradation:</strong> 1 specialist crash, hệ thống không die. Đây chính là lợi thế chính của distributed multi-agent so với monolith (Stage 4) — Stage 4 nếu 1 agent throw thì cả graph fail.
+  </div>
+</section>
+
+<section>
+  <h2>5. Bài 5.3 — Modify agent behavior</h2>
+  <div class="ex-header">
+    <h3 style="margin:0;">Mục tiêu: sửa Tax Agent system prompt → restart → verify</h3>
+    <span class="pass-tag">✅ PASS</span>
+  </div>
+
+  <p>Sửa <code>tax_agent/graph.py</code> từ prompt verbose (35 dòng) → prompt cực ngắn:</p>
+<pre><code>TAX_SYSTEM_PROMPT = """You are a specialist tax attorney. Answer EXTREMELY concisely:
+
+- Maximum 3 bullet points
+- Each bullet ≤ 20 words
+- Cite specific IRC sections or USC statutes
+- NO disclaimers, NO preamble, NO closing remarks
+- Just the 3 bullets, nothing else
+
+Domain: corporate tax law, IRS enforcement, tax evasion penalties, FBAR/FATCA.
+"""</code></pre>
+
+  <p>Restart Tax Agent, gửi câu hỏi tax-focused, check log:</p>
+
+  <table>
+    <thead><tr><th>Trạng thái</th><th>Tax Agent response</th></tr></thead>
+    <tbody>
+      <tr><td>Trước (verbose prompt)</td><td>3,660 chars</td></tr>
+      <tr><td><strong>Sau (3-bullet prompt)</strong></td><td class="ok">309 chars (giảm ~12x)</td></tr>
+      <tr><td>Compliance Agent (control, không sửa)</td><td>3,217–3,542 chars (không đổi)</td></tr>
+    </tbody>
+  </table>
+
+  <div class="info-box tip">
+    <strong>💡 Hot-swap behavior:</strong> Có thể đổi behavior 1 agent mà không restart cả hệ thống — chỉ restart agent đó (~3s). Customer/Law/Compliance vẫn chạy bình thường, sẽ tự reconnect khi Tax Agent lên lại.
+  </div>
+</section>
+
+<section>
+  <h2>6. 🌟 Bài Cộng Điểm — Latency Optimization</h2>
+
+  <h3>Câu 1: Latency baseline là bao nhiêu?</h3>
+  <div class="info-box win">
+    <strong>Trả lời: 69.93 giây</strong> (đo qua wall-clock từ lúc client gửi request đến lúc nhận response).
+  </div>
+
+  <h3>Câu 2: Đề xuất phương án giảm latency</h3>
+  <p>Phân tích timeline baseline (xem mục 2):</p>
+  <ul>
+    <li>~23s ở Law Agent cho <code>analyze_law</code> + <code>check_routing</code> <strong>chạy tuần tự</strong></li>
+    <li>~12s parallel cho Tax + Compliance specialists</li>
+    <li>~18s cho <code>aggregate</code> step</li>
+    <li>~10s overhead Customer Agent (ReAct loop + delegate)</li>
+  </ul>
+
+  <p><strong>Insight:</strong> <code>analyze_law</code> là 1 LLM call tốn ~10s nhưng output của nó <strong>chỉ được dùng trong aggregate</strong> — mà aggregate cũng là LLM call có thể tự synthesize từ specialists' outputs. Vậy → <strong>analyze_law là redundant</strong>.</p>
+
+  <h3>Optimization v1: chạy <code>analyze_law</code> song song với specialists</h3>
+  <p>Đẩy <code>analyze_law</code> vào <code>route_to_subagents</code> Send() list:</p>
+<pre><code>def route_to_subagents(state) -> list[Send]:
+    sends = [Send("analyze_law", state)]    # ⚡ parallel with specialists
+    if state.get("needs_tax"):
+        sends.append(Send("call_tax", state))
+    if state.get("needs_compliance"):
+        sends.append(Send("call_compliance", state))
+    return sends</code></pre>
+
+  <p><strong>Kết quả: 64.65s</strong> — chỉ tiết kiệm <strong>5.28s (7.5%)</strong>. Lý do: analyze_law (~10s) chạy song song nhưng <em>vẫn block aggregate</em> phải chờ — nếu analyze_law là nhánh chậm nhất, ta không tiết kiệm được nhiều.</p>
+
+  <h3>Optimization v2: bỏ hẳn <code>analyze_law</code></h3>
+  <p>Aggregator có LLM call đủ thông minh để tự ra phần "Legal Analysis" từ specialists' outputs. Vậy bỏ luôn node redundant:</p>
+<pre><code>def route_to_subagents(state) -> list[Send]:
+    sends = []
+    if state.get("needs_tax"):
+        sends.append(Send("call_tax", state))
+    if state.get("needs_compliance"):
+        sends.append(Send("call_compliance", state))
+    if not sends:
+        sends.append(Send("aggregate", state))
+    return sends
+
+# Graph mới:
+graph.set_entry_point("check_routing")    # không qua analyze_law nữa
+graph.add_conditional_edges("check_routing", route_to_subagents, [...])</code></pre>
+
+  <h3>📊 So sánh kết quả</h3>
+
+  <div class="latency-card">
+    <div class="card baseline">
+      <div class="label">Baseline</div>
+      <div class="value">69.93s</div>
+      <div class="delta">analyze_law sequential</div>
+    </div>
+    <div class="card v1">
+      <div class="label">v1 — parallel analyze_law</div>
+      <div class="value">64.65s</div>
+      <div class="delta">-5.28s (-7.5%)</div>
+    </div>
+    <div class="card v2">
+      <div class="label">v2 — drop analyze_law</div>
+      <div class="value">42.39s</div>
+      <div class="delta">-27.54s (-39.4%) 🎉</div>
+    </div>
+  </div>
+
+  <div class="bar-chart">
+    <div class="row"><div class="label">Baseline</div><div class="bar b" style="width: 700px; max-width: 70%;">69.93s</div></div>
+    <div class="row"><div class="label">Optimize v1</div><div class="bar v1" style="width: 647px; max-width: 65%;">64.65s</div></div>
+    <div class="row"><div class="label">Optimize v2 ⭐</div><div class="bar v2" style="width: 424px; max-width: 42%;">42.39s</div></div>
+  </div>
+
+  <p><strong>Run lần 2 để verify v2:</strong> 45.85s — consistent. Trung bình ~44s.</p>
+
+  <h3>Tại sao v2 hiệu quả hơn nhiều v1?</h3>
+  <p>v1: analyze_law song song nhưng vẫn block aggregate (slowest-branch wins). v2: bỏ hẳn → aggregate chạy ngay sau specialists xong, tiết kiệm cả thời gian analyze_law (~10s) <strong>và</strong> không cần wait barrier.</p>
+
+  <div class="info-box win">
+    <strong>🎯 Kết quả cuối:</strong> <span style="font-size: 1.2em;"><strong>69.93s → 42.39s = giảm 39.4%</strong></span>
+  </div>
+</section>
+
+<section>
+  <h2>7. Các hướng tối ưu khác chưa triển khai</h2>
+
+  <table>
+    <thead><tr><th>Hướng</th><th>Ước tính</th><th>Trade-off</th></tr></thead>
+    <tbody>
+      <tr><td>Streaming response (gửi từng token)</td><td>UX nhanh hơn nhiều</td><td>Cần frontend support, A2A SDK streaming API</td></tr>
+      <tr><td>Cache discover() results (5min TTL)</td><td>~150ms / call</td><td>Stale nếu agent move endpoint</td></tr>
+      <tr><td>HTTP/2 multiplexing</td><td>~100ms / parallel call</td><td>Cần upgrade httpx config</td></tr>
+      <tr><td>Reduce system prompt size (mỗi agent ~20 dòng)</td><td>~10% per LLM call</td><td>Có thể giảm độ chính xác</td></tr>
+      <tr><td>Skip Customer Agent — client gọi thẳng Law Agent</td><td>~10s</td><td>Mất UX layer "front desk"</td></tr>
+      <tr><td>Đổi sang Haiku/Flash cho routing</td><td>~3-5s</td><td>Routing có thể sai hơn</td></tr>
+      <tr><td>Async aggregate (gửi partial khi 1 specialist xong)</td><td>~30%</td><td>Phức tạp, cần redesign aggregate node</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section>
+  <h2>8. Files đã sửa</h2>
+<pre><code>law_agent/graph.py            # 2 thay đổi:
+                              #   - route_to_subagents: bỏ analyze_law khỏi Send list
+                              #   - create_graph: set_entry_point("check_routing"),
+                              #     bỏ edge analyze_law → aggregate
+
+tax_agent/graph.py            # Tạm sửa cho bài 5.3 (rồi restore)
+
+docs/stage_5_lab_results.html # File này</code></pre>
+
+  <div class="info-box warn">
+    <strong>⚠️ Lưu ý:</strong> Sau khi demo xong nên revert <code>law_agent/graph.py</code> về bản gốc nếu muốn giữ <code>analyze_law</code> cho mục đích chất lượng câu trả lời sâu hơn. Optimization này là <strong>trade-off speed vs depth</strong> — 39% nhanh hơn nhưng câu trả lời có thể thiếu phần "lead attorney framing" trước khi đi vào chi tiết.
+  </div>
+</section>
+
+<section>
+  <h2>9. Tổng kết</h2>
+  <table>
+    <thead><tr><th>Bài</th><th>Kết quả</th></tr></thead>
+    <tbody>
+      <tr><td>5.1 — Trace request flow</td><td class="ok">✅ PASS — trace_id propagated qua 4 agents, depth 0→1→2 đúng</td></tr>
+      <tr><td>5.2 — Dynamic discovery test</td><td class="ok">✅ PASS — graceful degradation khi Tax Agent down</td></tr>
+      <tr><td>5.3 — Modify behavior</td><td class="ok">✅ PASS — hot-swap prompt, response giảm 12x kích thước</td></tr>
+      <tr><td>🌟 Bonus — Latency</td><td class="ok">✅ DONE — giảm từ 69.93s → 42.39s (-39.4%)</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Insight thực tế từ lab</h3>
+  <ol>
+    <li><strong>Setup là khâu hay fail nhất:</strong> system Python vs venv Python — start_all.sh nên gọi <code>.venv/bin/python</code> tường minh</li>
+    <li><strong>Registry không healthcheck</strong> → trả endpoint stale khi agent down. Production cần TTL hoặc periodic ping</li>
+    <li><strong>Graceful degradation</strong> là điểm sáng — Law Agent <code>try/except</code> giúp 1 specialist crash không sập cả hệ thống</li>
+    <li><strong>Latency win lớn nhất đến từ việc loại bỏ work redundant</strong>, không phải tối ưu work cần thiết. <code>analyze_law</code> trùng việc với aggregate's synthesis → bỏ tiết kiệm 27s</li>
+    <li><strong>Hot-swap behavior</strong> qua restart 1 agent (~3s) là sức mạnh thật của distributed — không cần redeploy cả stack</li>
+  </ol>
+</section>
+
+<footer>
+  <p>📘 Stage 5 Lab Results · Batch 02 — Ngày 9 · Multi-Agent System với A2A Protocol</p>
+  <p style="margin-top: 8px;">🎉 Hoàn thành toàn bộ 5 stages + lab thực hành Stage 5 + bài cộng điểm</p>
+</footer>
+
+</div>
+
+</body>
+</html>
