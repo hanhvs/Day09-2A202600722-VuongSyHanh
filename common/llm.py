@@ -1,18 +1,97 @@
 """Shared LLM factory for all agents.
 
-Uses OpenRouter as an OpenAI-compatible API, so any provider's model
-can be selected via the OPENROUTER_MODEL env var.
+Provider is selected via the LLM_PROVIDER env var:
+
+    openrouter  → OpenRouter (default, OpenAI-compatible aggregator)
+    openai      → OpenAI direct
+    anthropic   → Anthropic Claude direct
+    gemini      → Google Gemini
+    custom      → Any OpenAI-compatible endpoint (Ollama, LM Studio, vLLM, ...)
+
+Each provider reads its own API key, model, and (where applicable) base URL.
+Imports are lazy so a missing optional dependency only errors when that
+provider is actually selected.
 """
 
 import os
 
-from langchain_openai import ChatOpenAI
+from langchain_core.language_models import BaseChatModel
 
 
-def get_llm() -> ChatOpenAI:
-    """Return a ChatOpenAI client pointed at OpenRouter."""
-    return ChatOpenAI(
-        model=os.getenv("OPENROUTER_MODEL", "anthropic/claude-sonnet-4-5"),
-        openai_api_key=os.getenv("OPENROUTER_API_KEY"),
-        openai_api_base="https://openrouter.ai/api/v1",
+def get_llm() -> BaseChatModel:
+    """Return a chat model based on the LLM_PROVIDER env var."""
+    provider = os.getenv("LLM_PROVIDER", "openrouter").strip().lower()
+
+    if provider == "openrouter":
+        from langchain_openai import ChatOpenAI
+
+        api_key = os.getenv("OPENROUTER_API_KEY")
+        if not api_key:
+            raise ValueError("OPENROUTER_API_KEY is not set")
+        return ChatOpenAI(
+            model=os.getenv("OPENROUTER_MODEL", "anthropic/claude-sonnet-4-5"),
+            openai_api_key=api_key,
+            openai_api_base="https://openrouter.ai/api/v1",
+        )
+
+    if provider == "openai":
+        from langchain_openai import ChatOpenAI
+
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            raise ValueError("OPENAI_API_KEY is not set")
+        return ChatOpenAI(
+            model=os.getenv("OPENAI_MODEL", "gpt-4o"),
+            openai_api_key=api_key,
+        )
+
+    if provider == "anthropic":
+        try:
+            from langchain_anthropic import ChatAnthropic
+        except ImportError as e:
+            raise ImportError(
+                "langchain-anthropic is required for LLM_PROVIDER=anthropic. "
+                "Install it with: uv add langchain-anthropic"
+            ) from e
+
+        api_key = os.getenv("ANTHROPIC_API_KEY")
+        if not api_key:
+            raise ValueError("ANTHROPIC_API_KEY is not set")
+        return ChatAnthropic(
+            model=os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-5"),
+            api_key=api_key,
+        )
+
+    if provider == "gemini":
+        try:
+            from langchain_google_genai import ChatGoogleGenerativeAI
+        except ImportError as e:
+            raise ImportError(
+                "langchain-google-genai is required for LLM_PROVIDER=gemini. "
+                "Install it with: uv add langchain-google-genai"
+            ) from e
+
+        api_key = os.getenv("GOOGLE_API_KEY")
+        if not api_key:
+            raise ValueError("GOOGLE_API_KEY is not set")
+        return ChatGoogleGenerativeAI(
+            model=os.getenv("GEMINI_MODEL", "gemini-2.0-flash"),
+            google_api_key=api_key,
+        )
+
+    if provider == "custom":
+        from langchain_openai import ChatOpenAI
+
+        base_url = os.getenv("CUSTOM_LLM_BASE_URL")
+        if not base_url:
+            raise ValueError("CUSTOM_LLM_BASE_URL is not set")
+        return ChatOpenAI(
+            model=os.getenv("CUSTOM_LLM_MODEL", "gpt-3.5-turbo"),
+            openai_api_key=os.getenv("CUSTOM_LLM_API_KEY", "not-needed"),
+            openai_api_base=base_url,
+        )
+
+    raise ValueError(
+        f"Unknown LLM_PROVIDER={provider!r}. "
+        "Expected one of: openrouter, openai, anthropic, gemini, custom"
     )

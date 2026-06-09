@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ngày 9 — Multi-Agent System với A2A Protocol</title>
+<style>
+  :root {
+    --bg: #0f1419;
+    --panel: #1a1f2e;
+    --panel-2: #232936;
+    --border: #2d3748;
+    --text: #e2e8f0;
+    --text-dim: #94a3b8;
+    --accent: #60a5fa;
+    --accent-2: #a78bfa;
+    --green: #34d399;
+    --orange: #fb923c;
+    --red: #f87171;
+    --yellow: #fbbf24;
+    --code-bg: #0d1117;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+  }
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+  }
+  header {
+    text-align: center;
+    padding: 48px 24px 32px;
+    background: linear-gradient(135deg, #1e3a8a 0%, #581c87 100%);
+    border-radius: 16px;
+    margin-bottom: 32px;
+  }
+  header h1 {
+    font-size: 2.4rem;
+    margin: 0 0 8px;
+    letter-spacing: -0.02em;
+  }
+  header .subtitle {
+    color: #cbd5e1;
+    font-size: 1.1rem;
+    margin: 0;
+  }
+  header .meta {
+    margin-top: 16px;
+    display: inline-flex;
+    gap: 20px;
+    color: #cbd5e1;
+    font-size: 0.95rem;
+  }
+  header .meta span::before { content: "• "; color: var(--accent); }
+  header .meta span:first-child::before { content: ""; }
+
+  nav.toc {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 28px;
+    margin-bottom: 40px;
+  }
+  nav.toc h2 {
+    margin: 0 0 12px;
+    font-size: 1.1rem;
+    color: var(--accent);
+  }
+  nav.toc ol { margin: 0; padding-left: 20px; }
+  nav.toc li { margin: 4px 0; }
+  nav.toc a { color: var(--text); text-decoration: none; }
+  nav.toc a:hover { color: var(--accent); }
+
+  section {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px 32px;
+    margin-bottom: 24px;
+  }
+  section h2 {
+    margin: 0 0 16px;
+    color: var(--accent);
+    font-size: 1.6rem;
+    border-bottom: 2px solid var(--border);
+    padding-bottom: 12px;
+  }
+  section h3 {
+    color: var(--accent-2);
+    margin: 24px 0 12px;
+    font-size: 1.2rem;
+  }
+  section h4 {
+    color: var(--yellow);
+    margin: 18px 0 8px;
+    font-size: 1.05rem;
+  }
+  p { margin: 8px 0; }
+
+  code {
+    background: var(--code-bg);
+    color: #e6edf3;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.9em;
+  }
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    overflow-x: auto;
+    font-size: 0.88rem;
+    line-height: 1.5;
+  }
+  pre code { background: transparent; padding: 0; }
+
+  .arch-diagram {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 24px;
+    font-family: "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.88rem;
+    line-height: 1.5;
+    white-space: pre;
+    overflow-x: auto;
+    color: #cbd5e1;
+  }
+
+  .stage-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+    margin: 16px 0;
+  }
+  .stage-card {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--accent);
+    border-radius: 8px;
+    padding: 16px 20px;
+  }
+  .stage-card.s1 { border-left-color: #34d399; }
+  .stage-card.s2 { border-left-color: #60a5fa; }
+  .stage-card.s3 { border-left-color: #a78bfa; }
+  .stage-card.s4 { border-left-color: #fb923c; }
+  .stage-card.s5 { border-left-color: #f87171; }
+  .stage-card h4 { margin: 0 0 8px; }
+  .stage-card .level { color: var(--yellow); font-size: 0.9rem; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    background: var(--panel-2);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  th, td {
+    padding: 10px 14px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  th {
+    background: #2d3748;
+    color: var(--accent);
+    font-weight: 600;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(96, 165, 250, 0.05); }
+
+  .tag {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    margin-right: 6px;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+  }
+  .tag.green { color: var(--green); border-color: var(--green); }
+  .tag.blue { color: var(--accent); border-color: var(--accent); }
+  .tag.purple { color: var(--accent-2); border-color: var(--accent-2); }
+  .tag.orange { color: var(--orange); border-color: var(--orange); }
+  .tag.red { color: var(--red); border-color: var(--red); }
+
+  .info-box {
+    background: rgba(96, 165, 250, 0.08);
+    border-left: 4px solid var(--accent);
+    border-radius: 6px;
+    padding: 12px 18px;
+    margin: 16px 0;
+  }
+  .info-box.tip {
+    background: rgba(52, 211, 153, 0.08);
+    border-left-color: var(--green);
+  }
+  .info-box.warn {
+    background: rgba(251, 146, 60, 0.08);
+    border-left-color: var(--orange);
+  }
+  .info-box.bonus {
+    background: rgba(251, 191, 36, 0.08);
+    border-left-color: var(--yellow);
+  }
+  .info-box strong { color: var(--text); }
+
+  .flow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin: 16px 0;
+  }
+  .flow .step {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-size: 0.95rem;
+  }
+  .flow .arrow { color: var(--accent); font-size: 1.4rem; }
+
+  ul li, ol li { margin: 4px 0; }
+
+  footer {
+    text-align: center;
+    color: var(--text-dim);
+    padding: 32px 16px;
+    font-size: 0.95rem;
+  }
+
+  .comparison {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin: 16px 0;
+  }
+  .comparison > div {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+  }
+  .comparison .pros { border-left: 4px solid var(--green); }
+  .comparison .cons { border-left: 4px solid var(--red); }
+  @media (max-width: 700px) {
+    .comparison { grid-template-columns: 1fr; }
+    header h1 { font-size: 1.8rem; }
+    section { padding: 20px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+<header>
+  <h1>Ngày 9 — Multi-Agent System với A2A Protocol</h1>
+  <p class="subtitle">Xây dựng hệ thống tư vấn pháp lý phân tán, từ Direct LLM đến Distributed Agents</p>
+  <div class="meta">
+    <span>Thời gian: 2 giờ</span>
+    <span>Python 3.11+</span>
+    <span>LangGraph + A2A SDK</span>
+  </div>
+</header>
+
+<nav class="toc">
+  <h2>📋 Mục lục</h2>
+  <ol>
+    <li><a href="#overview">Tổng quan bài học</a></li>
+    <li><a href="#architecture">Kiến trúc hệ thống</a></li>
+    <li><a href="#stage1">Stage 1 — Direct LLM Calling</a></li>
+    <li><a href="#stage2">Stage 2 — LLM + RAG &amp; Tools</a></li>
+    <li><a href="#stage3">Stage 3 — Single Agent (ReAct)</a></li>
+    <li><a href="#stage4">Stage 4 — Multi-Agent In-Process</a></li>
+    <li><a href="#stage5">Stage 5 — Distributed A2A</a></li>
+    <li><a href="#exercises">Bài tập thực hành</a></li>
+    <li><a href="#bonus">Bài tập cộng điểm</a></li>
+    <li><a href="#summary">Tổng kết</a></li>
+  </ol>
+</nav>
+
+<section id="overview">
+  <h2>🎯 Tổng quan bài học</h2>
+  <p>Hôm nay bạn sẽ xây dựng một <strong>hệ thống tư vấn pháp lý đa tác nhân (Legal Multi-Agent System)</strong>, đi qua <strong>5 giai đoạn tiến hóa của LLM</strong>: từ gọi API đơn giản → tích hợp tools/RAG → agent tự động → nhiều agents song song → và cuối cùng là hệ thống phân tán giao tiếp qua HTTP với protocol A2A.</p>
+
+  <h3>Mục tiêu học tập</h3>
+  <ul>
+    <li>Hiểu cách <strong>LLM</strong> hoạt động từ cơ bản đến nâng cao</li>
+    <li>Biết cách tích hợp <strong>tools</strong> và <strong>RAG</strong> (Retrieval-Augmented Generation) vào LLM</li>
+    <li>Xây dựng <strong>single agent</strong> với pattern <strong>ReAct</strong> (Reasoning + Acting)</li>
+    <li>Tạo <strong>multi-agent system</strong> bằng <strong>LangGraph StateGraph</strong> + <strong>Send API</strong></li>
+    <li>Triển khai <strong>distributed agents</strong> giao tiếp qua <strong>A2A Protocol</strong> với dynamic discovery</li>
+  </ul>
+
+  <h3>Bài toán: Hệ thống tư vấn pháp lý</h3>
+  <p>Người dùng đặt câu hỏi pháp lý → hệ thống phân tích đồng thời 3 góc nhìn: <strong>Luật chung</strong>, <strong>Thuế</strong>, và <strong>Compliance</strong> (SEC/SOX/GDPR) → tổng hợp thành câu trả lời toàn diện.</p>
+</section>
+
+<section id="architecture">
+  <h2>🏗️ Kiến trúc hệ thống (Stage 5 — đích đến)</h2>
+  <div class="arch-diagram">                     ┌─────────────────────┐
+                     │  Registry Service   │  :10000
+                     │  /register          │
+                     │  /discover/{task}   │
+                     └─────────┬───────────┘
+                               │  (agents tự đăng ký khi khởi động)
+          ┌────────────────────┼─────────────────────┐
+          │                    │                     │
+   Tax Agent :10102   Law Agent :10101    Compliance Agent :10103
+          │                    │                     │
+          └─────────► delegate song song ◄───────────┘
+                               │
+                        Customer Agent :10100
+                               │
+                             User</div>
+
+  <h3>Vai trò từng Agent</h3>
+  <table>
+    <thead>
+      <tr><th>Agent</th><th>Port</th><th>Pattern</th><th>Nhiệm vụ</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Customer Agent</td><td>10100</td><td><code>create_react_agent</code></td><td>Cổng vào — định tuyến câu hỏi tới Law Agent</td></tr>
+      <tr><td>Law Agent</td><td>10101</td><td>Custom <code>StateGraph</code></td><td>Orchestrator — phân tích luật, delegate song song</td></tr>
+      <tr><td>Tax Agent</td><td>10102</td><td><code>create_react_agent</code></td><td>Chuyên gia: luật thuế, IRS, FBAR/FATCA</td></tr>
+      <tr><td>Compliance Agent</td><td>10103</td><td><code>create_react_agent</code></td><td>Chuyên gia: SEC, SOX, FCPA, GDPR, AML</td></tr>
+      <tr><td>Registry</td><td>10000</td><td>FastAPI</td><td>Service discovery — không phải agent</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Request Flow</h3>
+  <div class="arch-diagram">User question
+  → Customer Agent: LLM phát hiện domain pháp lý, gọi tool delegate
+    → Registry: discover("legal_question") → trả endpoint Law Agent
+    → Law Agent:
+        [analyze_law]      LLM phân tích contract/tort
+        [check_routing]    LLM quyết định: cần Tax? cần Compliance?
+        [call_tax]         ──→ Registry → Tax Agent (A2A)     ┐
+        [call_compliance]  ──→ Registry → Compliance (A2A)    ├ song song
+        [aggregate]        Tổng hợp các phân tích             ┘
+  → Customer Agent trả response cho user</div>
+
+  <h3>Key Design Patterns</h3>
+  <ul>
+    <li><span class="tag blue">Dynamic discovery</span> — agents tìm nhau qua Registry, không hardcode URL</li>
+    <li><span class="tag purple">Parallel delegation</span> — LangGraph <code>Send</code> API dispatch song song</li>
+    <li><span class="tag green">Trace propagation</span> — <code>trace_id</code>/<code>context_id</code> đi xuyên qua mỗi A2A hop</li>
+    <li><span class="tag orange">Depth guards</span> — <code>MAX_DELEGATION_DEPTH = 3</code> chống vòng lặp vô hạn</li>
+    <li><span class="tag red">Annotated reducers</span> — <code>Annotated[str, _last_wins]</code> xử lý ghi song song vào state</li>
+  </ul>
+</section>
+
+<section id="stage1">
+  <h2>🟢 Stage 1 — Direct LLM Calling <span class="tag green">⭐ Cơ bản</span></h2>
+  <p>LLM ở dạng cơ bản nhất: <strong>nhận text → trả text</strong>. Không memory, không tools, chỉ dựa vào training data.</p>
+
+  <div class="flow">
+    <div class="step">User question</div>
+    <div class="arrow">→</div>
+    <div class="step">LLM (OpenRouter)</div>
+    <div class="arrow">→</div>
+    <div class="step">Answer</div>
+  </div>
+
+  <div class="comparison">
+    <div class="pros">
+      <h4>✅ Ưu điểm</h4>
+      <ul><li>Đơn giản, dễ implement</li><li>Phản hồi nhanh</li></ul>
+    </div>
+    <div class="cons">
+      <h4>❌ Nhược điểm</h4>
+      <ul>
+        <li>Không có kiến thức real-time</li>
+        <li>Không tra cứu được database</li>
+        <li>Không có context giữa các lần gọi</li>
+      </ul>
+    </div>
+  </div>
+
+  <h4>Chạy demo</h4>
+  <pre><code>uv run python stages/stage_1_direct_llm/main.py</code></pre>
+
+  <h4>Câu hỏi cần trả lời khi đọc code</h4>
+  <ol>
+    <li>LLM được khởi tạo như thế nào? (Tìm hàm <code>get_llm()</code> trong <code>common/llm.py</code>)</li>
+    <li>Message gửi đến LLM có cấu trúc gì? Tại sao cần <code>SystemMessage</code> và <code>HumanMessage</code>?</li>
+  </ol>
+</section>
+
+<section id="stage2">
+  <h2>🔵 Stage 2 — LLM + RAG &amp; Tools <span class="tag blue">⭐⭐ Trung bình</span></h2>
+  <p><strong>RAG</strong> (Retrieval-Augmented Generation) cho phép LLM tra cứu knowledge base trước khi trả lời. <strong>Tools</strong> là các function LLM có thể gọi để tính toán hoặc truy vấn data.</p>
+
+  <h3>Function Calling Flow</h3>
+  <div class="flow">
+    <div class="step">1. LLM nhận câu hỏi + tools</div>
+    <div class="arrow">→</div>
+    <div class="step">2. LLM chọn tool</div>
+    <div class="arrow">→</div>
+    <div class="step">3. Tool execute</div>
+    <div class="arrow">→</div>
+    <div class="step">4. LLM tổng hợp</div>
+  </div>
+
+  <h4>Chạy demo</h4>
+  <pre><code>uv run python stages/stage_2_rag_tools/main.py</code></pre>
+
+  <h4>Bài tập 2.1 — Thêm knowledge base entry về luật lao động</h4>
+  <pre><code>{
+    "id": "labor_law",
+    "keywords": ["lao động", "sa thải", "labor", "termination"],
+    "text": (
+        "Theo Bộ luật Lao động Việt Nam 2019, người sử dụng lao động "
+        "có thể đơn phương chấm dứt hợp đồng trong các trường hợp: ..."
+    ),
+}</code></pre>
+
+  <h4>Bài tập 2.2 — Tạo tool mới <code>check_statute_of_limitations</code></h4>
+  <pre><code>@tool
+def check_statute_of_limitations(case_type: str) -> str:
+    """Kiểm tra thời hiệu khởi kiện theo loại vụ án."""
+    limits = {
+        "contract": "4 năm (UCC § 2-725)",
+        "tort": "2-3 năm tùy bang",
+        "property": "5 năm",
+    }
+    return limits.get(case_type.lower(), "Không xác định")</code></pre>
+</section>
+
+<section id="stage3">
+  <h2>🟣 Stage 3 — Single Agent với ReAct <span class="tag purple">⭐⭐⭐ Nâng cao</span></h2>
+  <p><strong>ReAct = Reasoning + Acting</strong>. Agent tự động lặp:</p>
+  <div class="flow">
+    <div class="step">🧠 Think</div>
+    <div class="arrow">→</div>
+    <div class="step">⚡ Act (gọi tool)</div>
+    <div class="arrow">→</div>
+    <div class="step">👁️ Observe</div>
+    <div class="arrow">↻</div>
+    <div class="step">Lặp đến khi có câu trả lời</div>
+  </div>
+
+  <p>LangGraph cung cấp <code>create_react_agent()</code> để tự động hóa pattern này — bạn không cần viết tay vòng lặp tool calling như Stage 2.</p>
+
+  <h4>Chạy demo</h4>
+  <pre><code>uv run python stages/stage_3_single_agent/main.py</code></pre>
+
+  <div class="info-box tip">
+    <strong>💡 So sánh với Stage 2:</strong> Không còn manual tool loop. Bạn chỉ gọi <code>agent_executor.invoke()</code> một lần và agent tự quyết định gọi bao nhiêu tools, theo thứ tự nào.
+  </div>
+
+  <h4>Bài tập 3.1 — Thêm tool tra cứu án lệ</h4>
+  <pre><code>@tool
+def search_case_law(keywords: str) -> str:
+    """Tìm kiếm án lệ theo từ khóa."""
+    cases = {
+        "breach": "Hadley v. Baxendale (1854) - Consequential damages",
+        "negligence": "Donoghue v. Stevenson (1932) - Duty of care",
+        "contract": "Carlill v. Carbolic Smoke Ball Co (1893)",
+    }
+    for key, case in cases.items():
+        if key in keywords.lower():
+            return case
+    return "Không tìm thấy án lệ phù hợp"</code></pre>
+</section>
+
+<section id="stage4">
+  <h2>🟠 Stage 4 — Multi-Agent In-Process <span class="tag orange">⭐⭐⭐⭐ Khó</span></h2>
+  <p>Nhiều agents <strong>chuyên môn hóa</strong> cùng làm việc trong cùng một process. Mỗi agent tập trung vào domain riêng và có thể chạy <strong>song song</strong>.</p>
+
+  <h3>Các thành phần LangGraph</h3>
+  <ul>
+    <li><code>StateGraph</code> — định nghĩa graph với state chia sẻ</li>
+    <li><code>TypedDict</code> — schema của shared state</li>
+    <li><code>Send()</code> API — dispatch nhiều tasks song song</li>
+    <li><code>add_node()</code> / <code>add_edge()</code> — xây dựng luồng</li>
+  </ul>
+
+  <h4>Cấu trúc graph (Stage 4)</h4>
+  <div class="arch-diagram">                    ┌──────────────┐
+                    │ analyze_law  │
+                    └──────┬───────┘
+                           │
+                    ┌──────▼───────┐
+                    │ check_routing│ ← LLM quyết định
+                    └──────┬───────┘
+                  Send()   │   Send()
+                  ┌────────┴────────┐
+                  ▼                 ▼
+          ┌─────────────┐   ┌────────────────┐
+          │  tax_agent  │   │compliance_agent│ ← chạy song song
+          └──────┬──────┘   └────────┬───────┘
+                 └─────────┬─────────┘
+                           ▼
+                  ┌────────────────┐
+                  │aggregate_results│
+                  └────────────────┘</div>
+
+  <h4>Chạy demo</h4>
+  <pre><code>uv run python stages/stage_4_milti_agent/main.py</code></pre>
+
+  <h4>Bài tập 4.1 — Thêm <code>privacy_agent</code></h4>
+  <pre><code>def privacy_agent(state: State) -> dict:
+    """Agent chuyên về GDPR và luật bảo vệ dữ liệu cá nhân."""
+    llm = get_llm()
+    prompt = f"""Bạn là chuyên gia về GDPR và privacy.
+Câu hỏi gốc: {state['question']}
+Phân tích pháp lý: {state.get('law_analysis', 'N/A')}
+Hãy phân tích các vấn đề về privacy và GDPR (nếu có).
+"""
+    response = llm.invoke([HumanMessage(content=prompt)])
+    return {"privacy_analysis": response.content}</code></pre>
+
+  <h4>Bài tập 4.2 — Conditional routing</h4>
+  <p>Chỉ gọi <code>privacy_agent</code> khi câu hỏi có từ khóa "data", "privacy", "gdpr", "dữ liệu":</p>
+  <pre><code>def check_routing(state: State) -> list[Send]:
+    q = state["question"].lower()
+    tasks = []
+    if any(k in q for k in ["tax", "irs", "thuế"]):
+        tasks.append(Send("tax_agent", state))
+    if any(k in q for k in ["compliance", "sec", "regulation"]):
+        tasks.append(Send("compliance_agent", state))
+    if any(k in q for k in ["data", "privacy", "gdpr", "dữ liệu"]):
+        tasks.append(Send("privacy_agent", state))
+    return tasks if tasks else [Send("aggregate_results", state)]</code></pre>
+</section>
+
+<section id="stage5">
+  <h2>🔴 Stage 5 — Distributed A2A System <span class="tag red">⭐⭐⭐⭐⭐ Production</span></h2>
+  <p><strong>A2A (Agent-to-Agent) Protocol:</strong> chuẩn giao tiếp giữa các agents qua HTTP. Mỗi agent là một service độc lập, có thể scale riêng biệt.</p>
+
+  <h3>Khác biệt Stage 4 vs Stage 5</h3>
+  <table>
+    <thead><tr><th>Khía cạnh</th><th>Stage 4 (In-Process)</th><th>Stage 5 (Distributed)</th></tr></thead>
+    <tbody>
+      <tr><td>Giao tiếp</td><td>Function call</td><td>HTTP + A2A protocol</td></tr>
+      <tr><td>Triển khai</td><td>1 process</td><td>5 services riêng biệt</td></tr>
+      <tr><td>Discovery</td><td>Import trực tiếp</td><td>Dynamic qua Registry</td></tr>
+      <tr><td>Scaling</td><td>Toàn bộ system</td><td>Từng agent riêng</td></tr>
+      <tr><td>Fault tolerance</td><td>Không</td><td>Một agent fail không sập hệ thống</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Cấu trúc mỗi agent module</h3>
+  <ul>
+    <li><code>graph.py</code> — định nghĩa LangGraph graph</li>
+    <li><code>agent_executor.py</code> — bridge giữa A2A SDK và LangGraph</li>
+    <li><code>__main__.py</code> — server bootstrap, agent card, đăng ký với Registry</li>
+  </ul>
+
+  <h4>Khởi động toàn hệ thống</h4>
+  <pre><code># Terminal 1: chạy tất cả services
+./start_all.sh
+
+# Terminal 2: gửi câu hỏi test
+uv run python test_client.py</code></pre>
+
+  <h4>Bài tập 5.1 — Trace request flow</h4>
+  <p>Tìm <code>trace_id</code> trong logs, theo dõi request đi qua từng agent. Vẽ sequence diagram.</p>
+
+  <h4>Bài tập 5.2 — Test dynamic discovery</h4>
+  <ol>
+    <li>Dừng Tax Agent (<code>Ctrl+C</code>)</li>
+    <li>Chạy lại <code>test_client.py</code></li>
+    <li>Quan sát hệ thống xử lý lỗi như thế nào</li>
+  </ol>
+
+  <h4>Bài tập 5.3 — Sửa hành vi agent</h4>
+  <p>Sửa <code>tax_agent/graph.py</code>, đổi system prompt để agent trả lời ngắn gọn hơn. Restart tax agent và test lại.</p>
+</section>
+
+<section id="exercises">
+  <h2>📝 Bài tập thực hành (folder <code>exercises/</code>)</h2>
+
+  <div class="stage-grid">
+    <div class="stage-card s2">
+      <h4>Exercise 2 — Tools &amp; Knowledge Base</h4>
+      <p class="level">⏱️ 10 phút</p>
+      <p>File: <code>exercise_2_tools.py</code></p>
+      <ul>
+        <li>Thêm entry luật lao động vào <code>LEGAL_KNOWLEDGE</code></li>
+        <li>Tạo tool <code>check_statute_of_limitations</code></li>
+        <li>Test với câu hỏi về thời hiệu khởi kiện</li>
+      </ul>
+      <pre><code>uv run python exercises/exercise_2_tools.py</code></pre>
+    </div>
+
+    <div class="stage-card s4">
+      <h4>Exercise 4 — Multi-Agent + Privacy Agent</h4>
+      <p class="level">⏱️ 15 phút</p>
+      <p>File: <code>exercise_4_multiagent.py</code></p>
+      <ul>
+        <li>Implement function <code>privacy_agent</code></li>
+        <li>Thêm conditional routing cho privacy</li>
+        <li>Thêm node vào graph</li>
+        <li>Test với câu hỏi về data breach</li>
+      </ul>
+      <pre><code>uv run python exercises/exercise_4_multiagent.py</code></pre>
+    </div>
+  </div>
+
+  <h3>Bài tập nâng cao (optional)</h3>
+  <ul>
+    <li><strong>Challenge 1:</strong> Thêm <code>financial_agent</code> phân tích thiệt hại tài chính</li>
+    <li><strong>Challenge 2:</strong> Implement conversation memory cho agent</li>
+    <li><strong>Challenge 3:</strong> Tạo tool gọi API thực để tra cứu luật từ database online</li>
+    <li><strong>Challenge 4:</strong> Thêm try-catch và retry logic khi tool fails</li>
+  </ul>
+</section>
+
+<section id="bonus">
+  <h2>🌟 Bài tập cộng điểm</h2>
+  <div class="info-box bonus">
+    <p>Sau khi chạy đầy đủ <strong>Stage 5</strong> (<code>test_client.py</code>), trả lời 2 câu hỏi:</p>
+    <ol>
+      <li><strong>Latency</strong> (tổng thời gian trả lời 1 câu hỏi của hệ thống) là bao nhiêu giây?</li>
+      <li>Đề xuất phương án <strong>giảm latency</strong> và demo + show thời gian đã giảm được sau khi áp dụng.</li>
+    </ol>
+  </div>
+
+  <h3>Gợi ý các hướng tối ưu latency</h3>
+  <ul>
+    <li><strong>Parallel hóa nhiều hơn</strong> — kiểm tra xem có nhánh nào có thể chạy đồng thời mà đang chạy tuần tự không</li>
+    <li><strong>Streaming response</strong> — trả lời từng phần thay vì chờ toàn bộ</li>
+    <li><strong>Caching</strong> — cache câu hỏi tương tự ở Registry hoặc agent level</li>
+    <li><strong>Đổi model nhanh hơn</strong> — Sonnet → Haiku cho các agent đơn giản</li>
+    <li><strong>Giảm system prompt</strong> — prompt càng ngắn càng nhanh</li>
+    <li><strong>Connection pooling</strong> — reuse HTTP connections giữa các A2A calls</li>
+    <li><strong>Bỏ delegation depth không cần thiết</strong> — flatten architecture khi có thể</li>
+  </ul>
+</section>
+
+<section id="summary">
+  <h2>📊 Tổng kết — So sánh 5 Stages</h2>
+  <table>
+    <thead>
+      <tr><th>Stage</th><th>Pattern</th><th>Use Case</th><th>Độ phức tạp</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>1</td><td>Direct LLM</td><td>Câu hỏi đơn giản, không cần tools</td><td>⭐</td></tr>
+      <tr><td>2</td><td>LLM + Tools</td><td>Cần tra cứu data hoặc tính toán</td><td>⭐⭐</td></tr>
+      <tr><td>3</td><td>ReAct Agent</td><td>Tự động orchestration, multi-step</td><td>⭐⭐⭐</td></tr>
+      <tr><td>4</td><td>Multi-Agent</td><td>Nhiều domains, parallel processing</td><td>⭐⭐⭐⭐</td></tr>
+      <tr><td>5</td><td>Distributed A2A</td><td>Production, scalable, fault-tolerant</td><td>⭐⭐⭐⭐⭐</td></tr>
+    </tbody>
+  </table>
+
+  <h3>❓ Câu hỏi ôn tập</h3>
+  <ol>
+    <li>Khi nào nên dùng <strong>single agent</strong> thay vì multi-agent?</li>
+    <li>Ưu điểm của <strong>A2A protocol</strong> so với gRPC hoặc REST thông thường?</li>
+    <li>Làm thế nào để <strong>prevent infinite delegation loops</strong> trong A2A?</li>
+    <li>Tại sao cần <strong>Registry service</strong>? Có thể hardcode URLs không?</li>
+  </ol>
+
+  <h3>🛠️ Tech Stack</h3>
+  <table>
+    <tbody>
+      <tr><td><strong>Agent framework</strong></td><td>LangGraph</td></tr>
+      <tr><td><strong>LLM provider</strong></td><td>OpenRouter (OpenAI-compatible)</td></tr>
+      <tr><td><strong>A2A transport</strong></td><td>a2a-sdk</td></tr>
+      <tr><td><strong>Registry</strong></td><td>FastAPI + in-memory store</td></tr>
+      <tr><td><strong>Package manager</strong></td><td>uv</td></tr>
+    </tbody>
+  </table>
+
+  <h3>📂 Cấu trúc project</h3>
+  <div class="arch-diagram">legal_multiagent/
+├── start_all.sh               # Khởi động toàn bộ services
+├── test_client.py             # E2E test client
+├── pyproject.toml             # Dependencies (uv-managed)
+├── common/                    # Shared utilities
+│   ├── llm.py                 # get_llm() → ChatOpenAI
+│   ├── a2a_client.py          # delegate() — A2A messaging
+│   └── registry_client.py     # discover() / register()
+├── registry/                  # Service discovery (port 10000)
+├── customer_agent/            # Entry point (port 10100)
+├── law_agent/                 # Orchestrator (port 10101)
+├── tax_agent/                 # Tax specialist (port 10102)
+├── compliance_agent/          # Compliance (port 10103)
+├── stages/                    # Demos tiến trình 1-4
+│   ├── stage_1_direct_llm/
+│   ├── stage_2_rag_tools/
+│   ├── stage_3_single_agent/
+│   └── stage_4_milti_agent/
+└── docs/                      # SVG architecture diagrams</div>
+
+  <div class="info-box tip">
+    <strong>💡 Lời khuyên cuối:</strong> Đừng nhảy thẳng tới Stage 5. Mỗi stage giải quyết một vấn đề mà stage trước không làm được — hiểu được <em>tại sao</em> cần Stage N+1 quan trọng hơn nhiều so với biết code Stage 5.
+  </div>
+</section>
+
+<footer>
+  <p>🚀 <strong>Batch 02 — Ngày 9</strong> · Multi-Agent System với A2A Protocol</p>
+  <p>Built with LangGraph · A2A SDK · OpenRouter</p>
+</footer>
+
+</div>
+
+</body>
+</html>
