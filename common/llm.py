@@ -18,9 +18,15 @@ import os
 from langchain_core.language_models import BaseChatModel
 
 
-def get_llm() -> BaseChatModel:
-    """Return a chat model based on the LLM_PROVIDER env var."""
+def get_llm(temperature: float | None = None) -> BaseChatModel:
+    """Return a chat model based on the LLM_PROVIDER env var.
+
+    Args:
+        temperature: Optional sampling temperature (0.0 = deterministic,
+                     1.0+ = more creative). If None, provider default is used.
+    """
     provider = os.getenv("LLM_PROVIDER", "openrouter").strip().lower()
+    extra = {"temperature": temperature} if temperature is not None else {}
 
     if provider == "openrouter":
         from langchain_openai import ChatOpenAI
@@ -32,6 +38,7 @@ def get_llm() -> BaseChatModel:
             model=os.getenv("OPENROUTER_MODEL", "anthropic/claude-sonnet-4-5"),
             openai_api_key=api_key,
             openai_api_base="https://openrouter.ai/api/v1",
+            **extra,
         )
 
     if provider == "openai":
@@ -43,6 +50,7 @@ def get_llm() -> BaseChatModel:
         return ChatOpenAI(
             model=os.getenv("OPENAI_MODEL", "gpt-4o"),
             openai_api_key=api_key,
+            **extra,
         )
 
     if provider == "anthropic":
@@ -60,6 +68,7 @@ def get_llm() -> BaseChatModel:
         return ChatAnthropic(
             model=os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-5"),
             api_key=api_key,
+            **extra,
         )
 
     if provider == "gemini":
@@ -77,6 +86,7 @@ def get_llm() -> BaseChatModel:
         return ChatGoogleGenerativeAI(
             model=os.getenv("GEMINI_MODEL", "gemini-2.0-flash"),
             google_api_key=api_key,
+            **extra,
         )
 
     if provider == "custom":
@@ -89,6 +99,7 @@ def get_llm() -> BaseChatModel:
             model=os.getenv("CUSTOM_LLM_MODEL", "gpt-3.5-turbo"),
             openai_api_key=os.getenv("CUSTOM_LLM_API_KEY", "not-needed"),
             openai_api_base=base_url,
+            **extra,
         )
 
     raise ValueError(

@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stage 1 — Direct LLM Calling · Tóm tắt</title>
+<style>
+  :root {
+    --bg: #0f1419;
+    --panel: #1a1f2e;
+    --panel-2: #232936;
+    --border: #2d3748;
+    --text: #e2e8f0;
+    --text-dim: #94a3b8;
+    --accent: #60a5fa;
+    --accent-2: #a78bfa;
+    --green: #34d399;
+    --orange: #fb923c;
+    --red: #f87171;
+    --yellow: #fbbf24;
+    --code-bg: #0d1117;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+  }
+  .container { max-width: 1000px; margin: 0 auto; padding: 40px 24px 80px; }
+  header {
+    text-align: center;
+    padding: 40px 24px 28px;
+    background: linear-gradient(135deg, #065f46 0%, #1e3a8a 100%);
+    border-radius: 16px;
+    margin-bottom: 32px;
+  }
+  header h1 { font-size: 2.2rem; margin: 0 0 8px; letter-spacing: -0.02em; }
+  header .subtitle { color: #cbd5e1; font-size: 1.05rem; margin: 0; }
+  header .meta {
+    margin-top: 14px;
+    display: inline-flex;
+    gap: 20px;
+    color: #cbd5e1;
+    font-size: 0.92rem;
+  }
+  header .meta span::before { content: "• "; color: var(--accent); }
+  header .meta span:first-child::before { content: ""; }
+
+  section {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 26px 30px;
+    margin-bottom: 22px;
+  }
+  section h2 {
+    margin: 0 0 14px;
+    color: var(--accent);
+    font-size: 1.45rem;
+    border-bottom: 2px solid var(--border);
+    padding-bottom: 10px;
+  }
+  section h3 {
+    color: var(--accent-2);
+    margin: 20px 0 10px;
+    font-size: 1.12rem;
+  }
+  p { margin: 8px 0; }
+  ul li, ol li { margin: 3px 0; }
+
+  code {
+    background: var(--code-bg);
+    color: #e6edf3;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.9em;
+  }
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    overflow-x: auto;
+    font-size: 0.86rem;
+    line-height: 1.55;
+  }
+  pre code { background: transparent; padding: 0; }
+
+  .ascii {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 18px;
+    font-family: "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.88rem;
+    line-height: 1.5;
+    white-space: pre;
+    overflow-x: auto;
+    color: #cbd5e1;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 14px 0;
+    background: var(--panel-2);
+    border-radius: 8px;
+    overflow: hidden;
+    font-size: 0.95rem;
+  }
+  th, td {
+    padding: 9px 13px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  th {
+    background: #2d3748;
+    color: var(--accent);
+    font-weight: 600;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(96, 165, 250, 0.05); }
+
+  .info-box {
+    background: rgba(96, 165, 250, 0.08);
+    border-left: 4px solid var(--accent);
+    border-radius: 6px;
+    padding: 10px 16px;
+    margin: 14px 0;
+  }
+  .info-box.tip { background: rgba(52, 211, 153, 0.08); border-left-color: var(--green); }
+  .info-box.warn { background: rgba(251, 146, 60, 0.08); border-left-color: var(--orange); }
+
+  .row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin: 12px 0;
+  }
+  .row > div {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 18px;
+  }
+  .pros { border-left: 4px solid var(--green); }
+  .cons { border-left: 4px solid var(--red); }
+
+  .flow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin: 14px 0;
+  }
+  .flow .step {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-size: 0.92rem;
+  }
+  .flow .arrow { color: var(--accent); font-size: 1.3rem; }
+
+  .badge-true { color: var(--green); font-weight: 600; }
+  .badge-false { color: var(--red); font-weight: 600; }
+
+  footer {
+    text-align: center;
+    color: var(--text-dim);
+    padding: 26px 16px;
+    font-size: 0.92rem;
+  }
+
+  @media (max-width: 700px) {
+    .row { grid-template-columns: 1fr; }
+    header h1 { font-size: 1.6rem; }
+    section { padding: 18px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+<header>
+  <h1>Stage 1 — Direct LLM Calling</h1>
+  <p class="subtitle">Tóm tắt — gọi LLM trực tiếp, không tools, không memory</p>
+  <div class="meta">
+    <span>⭐ Cơ bản</span>
+    <span>20 phút</span>
+    <span>LangChain · BaseChatModel</span>
+  </div>
+</header>
+
+<section>
+  <h2>1. Ý tưởng</h2>
+  <p>LLM ở dạng cơ bản nhất là một <strong>API stateless</strong>: nhận text vào → trả text ra. Toàn bộ câu trả lời đến <strong>hoàn toàn từ training data</strong> của model.</p>
+
+  <div class="flow">
+    <div class="step">User question</div>
+    <div class="arrow">→</div>
+    <div class="step">[SystemMessage + HumanMessage]</div>
+    <div class="arrow">→</div>
+    <div class="step">LLM</div>
+    <div class="arrow">→</div>
+    <div class="step">Answer</div>
+  </div>
+
+  <p><strong>Stage 1 không có:</strong></p>
+  <ul>
+    <li>❌ Tools / function calling</li>
+    <li>❌ Tra cứu database (RAG)</li>
+    <li>❌ Memory giữa các lần gọi</li>
+    <li>❌ Multi-step reasoning tự động</li>
+  </ul>
+</section>
+
+<section>
+  <h2>2. Code chính</h2>
+  <p><strong>File:</strong> <code>stages/stage_1_direct_llm/main.py</code></p>
+
+<pre><code>from langchain_core.messages import HumanMessage, SystemMessage
+from common.llm import get_llm
+
+llm = get_llm()
+
+messages = [
+    SystemMessage(content="You are a legal expert. Keep response under 300 words."),
+    HumanMessage(content="What are the legal consequences if a company breaches an NDA?"),
+]
+
+response = await llm.ainvoke(messages)
+print(response.content)</code></pre>
+
+  <h3>Vai trò 2 loại Message</h3>
+  <table>
+    <thead><tr><th>Message</th><th>Vai trò</th><th>Tương tự như</th></tr></thead>
+    <tbody>
+      <tr><td><code>SystemMessage</code></td><td>Đặt persona, ràng buộc style cho LLM</td><td>"Job description" của LLM</td></tr>
+      <tr><td><code>HumanMessage</code></td><td>Câu hỏi/yêu cầu thật của user</td><td>Input từ user</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section>
+  <h2>3. LLM Factory đa provider</h2>
+  <p><strong>File:</strong> <code>common/llm.py</code></p>
+  <p><code>get_llm(temperature=None)</code> đọc <code>LLM_PROVIDER</code> từ <code>.env</code> và route sang đúng client:</p>
+
+  <table>
+    <thead>
+      <tr><th><code>LLM_PROVIDER</code></th><th>Env vars cần</th><th>Package LangChain</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>openrouter</code></td><td><code>OPENROUTER_API_KEY</code>, <code>OPENROUTER_MODEL</code></td><td><code>langchain-openai</code></td></tr>
+      <tr><td><code>openai</code></td><td><code>OPENAI_API_KEY</code>, <code>OPENAI_MODEL</code></td><td><code>langchain-openai</code></td></tr>
+      <tr><td><code>anthropic</code></td><td><code>ANTHROPIC_API_KEY</code>, <code>ANTHROPIC_MODEL</code></td><td><code>langchain-anthropic</code></td></tr>
+      <tr><td><code>gemini</code></td><td><code>GOOGLE_API_KEY</code>, <code>GEMINI_MODEL</code></td><td><code>langchain-google-genai</code></td></tr>
+      <tr><td><code>custom</code></td><td><code>CUSTOM_LLM_BASE_URL</code>, <code>CUSTOM_LLM_API_KEY</code>, <code>CUSTOM_LLM_MODEL</code></td><td><code>langchain-openai</code></td></tr>
+    </tbody>
+  </table>
+
+  <div class="info-box tip">
+    <strong>💡 Đặc điểm thiết kế:</strong>
+    <ul>
+      <li><strong>Lazy import</strong> — thiếu <code>langchain-anthropic</code> không gãy app nếu đang dùng OpenAI</li>
+      <li>Có error message rõ ràng khi thiếu key</li>
+      <li>Backward compat — default vẫn là <code>openrouter</code></li>
+    </ul>
+  </div>
+</section>
+
+<section>
+  <h2>4. Cách chạy</h2>
+
+<pre><code># Demo gốc Stage 1
+python stages/stage_1_direct_llm/main.py
+
+# Bài 1.1 — đổi câu hỏi (đã clone sẵn)
+python exercises/exercise_1_1_question.py
+
+# Bài 1.2 — temperature control (đã clone sẵn)
+python exercises/exercise_1_2_temperature.py</code></pre>
+</section>
+
+<section>
+  <h2>5. Bài tập đã hoàn thành</h2>
+
+  <h3>Exercise 1.1 — Đổi câu hỏi</h3>
+  <p><strong>File:</strong> <code>exercises/exercise_1_1_question.py</code></p>
+  <p>Đổi <code>QUESTION</code> sang câu hỏi pháp lý tiếng Việt:</p>
+  <div class="info-box">
+    <em>"Theo Bộ luật Lao động Việt Nam 2019, doanh nghiệp có quyền đơn phương chấm dứt hợp đồng lao động trong những trường hợp nào?"</em>
+  </div>
+  <p><strong>Quan sát:</strong> LLM trả lời được 5 trường hợp dựa trên training data, có dẫn ra Điều 38 BLLĐ. Tuy nhiên không thể đảm bảo số điều/điều khoản luôn chính xác vì không tra cứu được luật thực tế.</p>
+
+  <h3>Exercise 1.2 — Temperature control</h3>
+  <p><strong>File:</strong> <code>exercises/exercise_1_2_temperature.py</code></p>
+  <p>Gọi LLM <strong>4 lần</strong> với cùng câu hỏi NDA: 2 lần <code>temperature=0.0</code>, 2 lần <code>temperature=1.0</code>.</p>
+
+  <h4>Kết quả thực nghiệm</h4>
+  <table>
+    <thead><tr><th>Lần</th><th>Temperature</th><th>So sánh 2 lần liên tiếp</th></tr></thead>
+    <tbody>
+      <tr><td>1 &amp; 2</td><td>0.0</td><td><span class="badge-true">✅ Giống hệt nhau (True)</span></td></tr>
+      <tr><td>3 &amp; 4</td><td>1.0</td><td><span class="badge-false">❌ Khác nhau (False)</span></td></tr>
+    </tbody>
+  </table>
+
+  <p>Ở <code>temperature=1.0</code>, mỗi lần xuất hiện những điểm khác nhau (vd "Khiếu nại pháp lý", "Tổn hại đến uy tín") không có trong các lần 0.0.</p>
+
+  <h4>Quy tắc chọn temperature</h4>
+  <div class="row">
+    <div class="pros">
+      <h4>🧊 Thấp (0.0 – 0.3)</h4>
+      <ul>
+        <li>Phân tích pháp lý (cần chính xác, có thể audit)</li>
+        <li>Tóm tắt văn bản, trích xuất dữ liệu</li>
+        <li>Function calling / tool use</li>
+      </ul>
+    </div>
+    <div class="cons" style="border-left-color: var(--orange);">
+      <h4>🔥 Cao (0.7 – 1.2)</h4>
+      <ul>
+        <li>Brainstorming, đề xuất ý tưởng</li>
+        <li>Viết quảng cáo, content sáng tạo</li>
+        <li>Sinh test cases đa dạng</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>6. Hạn chế Stage 1 → động lực cho Stage 2</h2>
+  <table>
+    <thead><tr><th>Hạn chế</th><th>Stage 2 giải quyết bằng</th></tr></thead>
+    <tbody>
+      <tr><td>Không tra cứu được database</td><td><strong>RAG</strong> — keyword match knowledge base</td></tr>
+      <tr><td>Không tính toán được (damages, thời hiệu)</td><td><strong>Tools</strong> — Python function LLM có thể gọi</td></tr>
+      <tr><td>Không cập nhật thông tin mới</td><td>Tool có thể gọi API thực</td></tr>
+      <tr><td>Knowledge cutoff</td><td>Tools cung cấp data hiện tại</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section>
+  <h2>7. Câu hỏi tự kiểm tra</h2>
+  <ol>
+    <li>Tại sao cần tách <code>SystemMessage</code> và <code>HumanMessage</code> thay vì gộp làm 1 prompt?</li>
+    <li>Cùng câu hỏi, gọi 2 lần với <code>temperature=0</code> có thể nhận output khác nhau không? Vì sao?</li>
+    <li>Khi nào nên dùng Stage 1 (Direct LLM) thay vì lên Stage 2 (Tools)?</li>
+    <li>Nếu user hỏi "Hôm nay thời tiết Hà Nội thế nào?", Stage 1 có trả lời được không? Vì sao?</li>
+  </ol>
+</section>
+
+<section>
+  <h2>8. Files liên quan</h2>
+  <div class="ascii">stages/stage_1_direct_llm/main.py        # Demo gốc
+exercises/exercise_1_1_question.py       # Bài 1.1 — đổi câu hỏi
+exercises/exercise_1_2_temperature.py    # Bài 1.2 — temperature
+common/llm.py                            # LLM factory (multi-provider)
+.env                                     # Cấu hình provider + API keys</div>
+</section>
+
+<footer>
+  <p>📘 Stage 1 Summary · Batch 02 — Ngày 9 · Multi-Agent System với A2A Protocol</p>
+</footer>
+
+</div>
+
+</body>
+</html>

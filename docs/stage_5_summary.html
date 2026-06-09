@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stage 5 — Distributed A2A System · Tóm tắt</title>
+<style>
+  :root {
+    --bg: #0f1419;
+    --panel: #1a1f2e;
+    --panel-2: #232936;
+    --border: #2d3748;
+    --text: #e2e8f0;
+    --text-dim: #94a3b8;
+    --accent: #60a5fa;
+    --accent-2: #a78bfa;
+    --green: #34d399;
+    --orange: #fb923c;
+    --red: #f87171;
+    --yellow: #fbbf24;
+    --code-bg: #0d1117;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+  }
+  .container { max-width: 1000px; margin: 0 auto; padding: 40px 24px 80px; }
+  header {
+    text-align: center;
+    padding: 40px 24px 28px;
+    background: linear-gradient(135deg, #7f1d1d 0%, #1e3a8a 100%);
+    border-radius: 16px;
+    margin-bottom: 32px;
+  }
+  header h1 { font-size: 2.2rem; margin: 0 0 8px; letter-spacing: -0.02em; }
+  header .subtitle { color: #fee2e2; font-size: 1.05rem; margin: 0; }
+  header .meta {
+    margin-top: 14px;
+    display: inline-flex;
+    gap: 20px;
+    color: #fee2e2;
+    font-size: 0.92rem;
+  }
+  header .meta span::before { content: "• "; color: var(--yellow); }
+  header .meta span:first-child::before { content: ""; }
+
+  section {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 26px 30px;
+    margin-bottom: 22px;
+  }
+  section h2 {
+    margin: 0 0 14px;
+    color: var(--accent);
+    font-size: 1.45rem;
+    border-bottom: 2px solid var(--border);
+    padding-bottom: 10px;
+  }
+  section h3 {
+    color: var(--accent-2);
+    margin: 20px 0 10px;
+    font-size: 1.12rem;
+  }
+  section h4 {
+    color: var(--yellow);
+    margin: 14px 0 6px;
+    font-size: 1rem;
+  }
+  p { margin: 8px 0; }
+  ul li, ol li { margin: 3px 0; }
+
+  code {
+    background: var(--code-bg);
+    color: #e6edf3;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.9em;
+  }
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    overflow-x: auto;
+    font-size: 0.86rem;
+    line-height: 1.55;
+  }
+  pre code { background: transparent; padding: 0; }
+
+  .ascii {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 18px;
+    font-family: "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.88rem;
+    line-height: 1.5;
+    white-space: pre;
+    overflow-x: auto;
+    color: #cbd5e1;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 14px 0;
+    background: var(--panel-2);
+    border-radius: 8px;
+    overflow: hidden;
+    font-size: 0.95rem;
+  }
+  th, td {
+    padding: 9px 13px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  th { background: #2d3748; color: var(--accent); font-weight: 600; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(96, 165, 250, 0.05); }
+
+  .info-box {
+    background: rgba(96, 165, 250, 0.08);
+    border-left: 4px solid var(--accent);
+    border-radius: 6px;
+    padding: 10px 16px;
+    margin: 14px 0;
+  }
+  .info-box.tip { background: rgba(52, 211, 153, 0.08); border-left-color: var(--green); }
+  .info-box.warn { background: rgba(251, 146, 60, 0.08); border-left-color: var(--orange); }
+  .info-box.bonus { background: rgba(251, 191, 36, 0.08); border-left-color: var(--yellow); }
+  .info-box.quote { background: rgba(167, 139, 250, 0.08); border-left-color: var(--accent-2); }
+
+  .arch {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 22px;
+    margin: 16px 0;
+  }
+  .service-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px;
+    margin: 16px 0;
+  }
+  .service-card {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--accent);
+    border-radius: 8px;
+    padding: 14px 18px;
+  }
+  .service-card.registry { border-left-color: var(--yellow); }
+  .service-card.customer { border-left-color: var(--green); }
+  .service-card.law { border-left-color: var(--accent); }
+  .service-card.tax { border-left-color: var(--accent-2); }
+  .service-card.compliance { border-left-color: var(--orange); }
+  .service-card h4 {
+    margin: 0 0 8px;
+    color: var(--text);
+  }
+  .service-card .port {
+    font-family: monospace;
+    background: var(--code-bg);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    color: var(--yellow);
+    margin-left: 6px;
+  }
+  .service-card ul {
+    margin: 6px 0;
+    padding-left: 18px;
+    font-size: 0.9rem;
+  }
+
+  .step-list {
+    counter-reset: step;
+  }
+  .step-list .step {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px 12px 50px;
+    margin: 10px 0;
+    position: relative;
+    counter-increment: step;
+  }
+  .step-list .step::before {
+    content: counter(step);
+    position: absolute;
+    left: 14px;
+    top: 12px;
+    width: 26px;
+    height: 26px;
+    background: var(--accent);
+    color: var(--bg);
+    border-radius: 50%;
+    text-align: center;
+    line-height: 26px;
+    font-weight: 700;
+    font-size: 0.85rem;
+  }
+
+  .tag {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 0.78rem;
+    margin-right: 4px;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+  }
+  .tag.green { color: var(--green); border-color: var(--green); }
+  .tag.blue { color: var(--accent); border-color: var(--accent); }
+  .tag.purple { color: var(--accent-2); border-color: var(--accent-2); }
+  .tag.orange { color: var(--orange); border-color: var(--orange); }
+  .tag.red { color: var(--red); border-color: var(--red); }
+  .tag.yellow { color: var(--yellow); border-color: var(--yellow); }
+
+  footer {
+    text-align: center;
+    color: var(--text-dim);
+    padding: 26px 16px;
+    font-size: 0.92rem;
+  }
+
+  @media (max-width: 700px) {
+    header h1 { font-size: 1.6rem; }
+    section { padding: 18px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+<header>
+  <h1>Stage 5 — Distributed A2A System</h1>
+  <p class="subtitle">Mỗi agent là 1 service độc lập, giao tiếp qua HTTP + A2A protocol, dynamic discovery</p>
+  <div class="meta">
+    <span>⭐⭐⭐⭐⭐ Production</span>
+    <span>30 phút</span>
+    <span>A2A SDK · FastAPI · Registry</span>
+  </div>
+</header>
+
+<section>
+  <h2>1. Ý tưởng — Tại sao cần Stage 5?</h2>
+  <p>Stage 4 đã có topology multi-agent đúng, nhưng <strong>tất cả chạy chung 1 process</strong>. Production-ready cần:</p>
+  <ul>
+    <li><strong>Scale từng agent riêng</strong> — Tax Agent bị nghẽn? Spin thêm 5 replicas, không động đến Compliance</li>
+    <li><strong>Fault tolerance</strong> — Compliance Agent crash, hệ thống vẫn trả được Tax + Law</li>
+    <li><strong>Polyglot</strong> — Tax Agent có thể viết bằng Python, Compliance bằng Go, miễn cùng A2A protocol</li>
+    <li><strong>Owned by different teams</strong> — Team A deploy Tax Agent, team B deploy Compliance, không cần share codebase</li>
+  </ul>
+
+  <div class="info-box tip">
+    <strong>💡 Key insight:</strong> Stage 5 <strong>giữ nguyên graph topology của Stage 4</strong>. Chỉ đổi <code>agent.ainvoke()</code> in-process thành <code>delegate(endpoint, ...)</code> qua HTTP. Hiểu Stage 4 vững → Stage 5 là extension tự nhiên.
+  </div>
+</section>
+
+<section>
+  <h2>2. Kiến trúc tổng quan</h2>
+  <div class="arch">
+    <pre style="margin:0">                     ┌─────────────────────┐
+                     │  Registry Service   │  :10000
+                     │  POST /register     │  ← agents tự đăng ký khi startup
+                     │  GET  /discover/{t} │  ← agents tìm nhau lúc runtime
+                     └─────────┬───────────┘
+                               │
+          ┌────────────────────┼─────────────────────┐
+          │                    │                     │
+   Tax Agent :10102   Law Agent :10101    Compliance Agent :10103
+          │                    │                     │
+          └───◄── A2A HTTP ────►───────◄── A2A HTTP ──┘
+                               │
+                        Customer Agent :10100
+                               │
+                          test_client.py
+                               │
+                             User</pre>
+  </div>
+
+  <h3>5 services độc lập</h3>
+  <div class="service-grid">
+    <div class="service-card registry">
+      <h4>Registry <span class="port">10000</span></h4>
+      <p><span class="tag yellow">FastAPI</span></p>
+      <ul>
+        <li><code>POST /register</code></li>
+        <li><code>GET /discover/{task}</code></li>
+        <li><code>GET /agents</code></li>
+        <li>In-memory store</li>
+      </ul>
+    </div>
+    <div class="service-card customer">
+      <h4>Customer <span class="port">10100</span></h4>
+      <p><span class="tag green">create_react_agent</span></p>
+      <ul>
+        <li>Entry point</li>
+        <li>1 tool: <code>delegate_to_legal_agent</code></li>
+        <li>Discover "legal_question"</li>
+      </ul>
+    </div>
+    <div class="service-card law">
+      <h4>Law <span class="port">10101</span></h4>
+      <p><span class="tag blue">StateGraph</span></p>
+      <ul>
+        <li>Orchestrator (Stage 4 graph)</li>
+        <li>Delegate parallel: Tax, Compliance</li>
+        <li>Aggregate kết quả</li>
+      </ul>
+    </div>
+    <div class="service-card tax">
+      <h4>Tax <span class="port">10102</span></h4>
+      <p><span class="tag purple">create_react_agent</span></p>
+      <ul>
+        <li>Specialist tax/IRS/FBAR/FATCA</li>
+        <li>Tools: search_tax_law</li>
+        <li>Đăng ký task "tax_question"</li>
+      </ul>
+    </div>
+    <div class="service-card compliance">
+      <h4>Compliance <span class="port">10103</span></h4>
+      <p><span class="tag orange">create_react_agent</span></p>
+      <ul>
+        <li>Specialist SEC/SOX/FCPA/GDPR</li>
+        <li>Tools: search_compliance_law</li>
+        <li>Đăng ký task "compliance_question"</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>3. A2A Protocol — Khái niệm cốt lõi</h2>
+  <p><strong>A2A</strong> (Agent-to-Agent) là chuẩn của Google cho agents giao tiếp qua HTTP. Có 4 khái niệm cần nhớ:</p>
+
+  <table>
+    <thead><tr><th>Khái niệm</th><th>Ý nghĩa</th><th>Tương tự như</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><code>AgentCard</code></td>
+        <td>Metadata mô tả agent: tên, version, skills, URL. Public ở <code>/.well-known/agent.json</code></td>
+        <td>OpenAPI spec / package.json</td>
+      </tr>
+      <tr>
+        <td><code>Task</code></td>
+        <td>Một "đơn vị công việc" mà agent xử lý. Có ID, state, lifecycle</td>
+        <td>Job trong queue</td>
+      </tr>
+      <tr>
+        <td><code>Message</code></td>
+        <td>Trao đổi giữa client ↔ agent. Có role, parts, metadata</td>
+        <td>HTTP request/response body</td>
+      </tr>
+      <tr>
+        <td><code>Part</code></td>
+        <td>Nội dung trong message. Có thể là <code>TextPart</code>, <code>FilePart</code>, <code>DataPart</code></td>
+        <td>multipart/form-data</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>Agent Card mẫu (Tax Agent)</h3>
+<pre><code>AgentCard(
+    name="Tax Agent",
+    description="Specialist tax attorney and CPA",
+    url="http://localhost:10102",
+    version="1.0.0",
+    capabilities=AgentCapabilities(streaming=False),
+    skills=[
+        AgentSkill(
+            id="tax_question",                          # ← key để discover
+            name="Tax Question",
+            description="Answer questions about tax law...",
+            tags=["tax", "irs", "penalties"],
+        )
+    ],
+)</code></pre>
+
+  <h3>Lifecycle 1 request</h3>
+  <ol>
+    <li>Client fetch <code>{endpoint}/.well-known/agent.json</code> để verify agent</li>
+    <li>Client gọi <code>send_message(request)</code> với <code>SendMessageRequest</code></li>
+    <li>Server tạo <code>Task</code>, chuyển trạng thái: submitted → working → completed</li>
+    <li>Server trả <code>Task</code> có <code>artifacts</code> (kết quả) hoặc <code>Message</code> trực tiếp</li>
+    <li>Client parse text từ artifacts/parts</li>
+  </ol>
+</section>
+
+<section>
+  <h2>4. Service Discovery — không hardcode URL</h2>
+  <p><strong>Vấn đề:</strong> Stage 4 hardcode <code>call_tax</code> import từ <code>tax_agent</code>. Stage 5 không thể vì 2 services chạy độc lập.</p>
+
+  <h3>Flow đăng ký + tìm nhau</h3>
+  <div class="step-list">
+    <div class="step"><strong>Startup — Tax Agent đăng ký:</strong>
+<pre><code>POST http://localhost:10000/register
+{
+    "agent_name": "tax-agent",
+    "endpoint": "http://localhost:10102",
+    "tasks": ["tax_question"],
+    "tags": ["tax", "irs", "penalties"]
+}</code></pre>
+    </div>
+    <div class="step"><strong>Runtime — Law Agent tìm Tax Agent:</strong>
+<pre><code>GET http://localhost:10000/discover/tax_question
+→ {"endpoint": "http://localhost:10102", "agent_name": "tax-agent"}</code></pre>
+    </div>
+    <div class="step"><strong>Delegate qua A2A:</strong>
+<pre><code>endpoint = await discover("tax_question")           # registry call
+result   = await delegate(endpoint, question, ...)  # A2A HTTP call</code></pre>
+    </div>
+  </div>
+
+  <div class="info-box tip">
+    <strong>💡 Ưu điểm dynamic discovery:</strong>
+    <ul>
+      <li>Đổi port Tax Agent từ 10102 → 10200? Chỉ sửa <code>__main__.py</code>, mọi caller tự cập nhật</li>
+      <li>Cần 2 Tax Agent (load balance)? Registry trả endpoint khác nhau theo round-robin</li>
+      <li>Tax Agent down? Registry trả 404, Law Agent tự handle exception</li>
+    </ul>
+  </div>
+
+  <h3>Retry registration</h3>
+  <p>Khi <code>start_all.sh</code> chạy, Registry start trước. Agents khác có thể start <em>trước khi</em> Registry sẵn sàng → mỗi agent có hàm <code>_register_with_retry()</code> retry 10 lần × 2 giây:</p>
+<pre><code>for attempt in range(1, max_attempts + 1):
+    try:
+        await register(info)
+        return
+    except Exception:
+        await asyncio.sleep(delay)</code></pre>
+</section>
+
+<section>
+  <h2>5. Trace Propagation — debug xuyên service</h2>
+  <p>Khi 1 request đi qua 4 services, làm sao biết log nào thuộc request nào? Dùng <code>trace_id</code>:</p>
+
+  <ol>
+    <li>Customer Agent generate <code>trace_id = uuid4()</code> khi nhận request đầu tiên</li>
+    <li>Mỗi A2A call gắn <code>trace_id</code> vào <code>message.metadata</code></li>
+    <li>Mọi log statement trong mọi agent đều prefix <code>trace_id</code></li>
+    <li>Khi debug: <code>grep trace=&lt;id&gt;</code> ở 4 file log → ra chuỗi đầy đủ</li>
+  </ol>
+
+<pre><code>message = Message(
+    role=Role.user,
+    parts=[Part(root=TextPart(text=question))],
+    message_id=str(uuid4()),
+    context_id=context_id,
+    metadata={
+        "trace_id": trace_id,            # ← propagate
+        "context_id": context_id,
+        "delegation_depth": depth,       # ← cũng propagate
+    },
+)</code></pre>
+</section>
+
+<section>
+  <h2>6. Depth Guard — chống infinite delegation</h2>
+  <p>Multi-agent có rủi ro: Law Agent gọi Tax Agent → Tax Agent (bug) lại gọi Law Agent → infinite loop.</p>
+
+  <p>Cơ chế bảo vệ trong <code>law_agent/graph.py</code>:</p>
+<pre><code>MAX_DELEGATION_DEPTH = 3
+
+async def check_routing(state: LawState) -> dict:
+    depth = state.get("delegation_depth", 0)
+    if depth >= MAX_DELEGATION_DEPTH:
+        logger.info("Max delegation depth reached (%d); skip sub-agents", depth)
+        return {"needs_tax": False, "needs_compliance": False}
+    # ... bình thường
+
+# Mỗi lần delegate, depth + 1
+await delegate(
+    endpoint=endpoint,
+    question=...,
+    depth=state.get("delegation_depth", 0) + 1,    # ← increment
+)</code></pre>
+
+  <div class="info-box warn">
+    <strong>⚠️ Pattern phổ biến trong distributed agents:</strong> luôn cap depth. Tương tự DNS có TTL, HTTP có max-redirects.
+  </div>
+</section>
+
+<section>
+  <h2>7. Cấu trúc 1 agent module</h2>
+  <p>Mỗi agent (tax/compliance/law/customer) có cùng 3 file:</p>
+
+  <table>
+    <thead><tr><th>File</th><th>Vai trò</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><code>graph.py</code></td>
+        <td>Logic agent — LangGraph graph (giống Stage 4)</td>
+      </tr>
+      <tr>
+        <td><code>agent_executor.py</code></td>
+        <td>Bridge giữa A2A SDK và LangGraph — nhận Task từ A2A, gọi graph, trả Artifact</td>
+      </tr>
+      <tr>
+        <td><code>__main__.py</code></td>
+        <td>Server bootstrap — tạo AgentCard, đăng ký Registry, start uvicorn</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p><strong>Pattern bootstrap chung:</strong></p>
+<pre><code># Bước 1: đăng ký với Registry (retry nếu Registry chưa up)
+await _register_with_retry()
+
+# Bước 2: tạo AgentCard
+agent_card = AgentCard(name="Tax Agent", skills=[...])
+
+# Bước 3: dùng A2A SDK build FastAPI app
+executor = TaxAgentExecutor()
+request_handler = DefaultRequestHandler(agent_executor=executor, ...)
+app = A2AFastAPIApplication(agent_card=agent_card, http_handler=request_handler).build()
+
+# Bước 4: chạy uvicorn
+uvicorn.run(app, host="0.0.0.0", port=PORT)</code></pre>
+</section>
+
+<section>
+  <h2>8. So sánh Stage 4 vs Stage 5</h2>
+  <table>
+    <thead><tr><th>Khía cạnh</th><th>Stage 4 (In-Process)</th><th>Stage 5 (Distributed A2A)</th></tr></thead>
+    <tbody>
+      <tr><td>Giao tiếp</td><td>Function call</td><td>HTTP + A2A protocol</td></tr>
+      <tr><td>Triển khai</td><td>1 process</td><td>5 services riêng biệt</td></tr>
+      <tr><td>Discovery</td><td>Import trực tiếp</td><td>Dynamic qua Registry</td></tr>
+      <tr><td>Scaling</td><td>Cả hệ thống</td><td>Từng agent riêng</td></tr>
+      <tr><td>Fault tolerance</td><td>1 crash = sập tất cả</td><td>Crash độc lập</td></tr>
+      <tr><td>Latency</td><td>~5-10s (chỉ LLM calls)</td><td>~30-60s (+ network + serialize)</td></tr>
+      <tr><td>Debug</td><td>Stack trace có sẵn</td><td>Cần trace_id qua các services</td></tr>
+      <tr><td>Đa ngôn ngữ</td><td>Phải cùng Python</td><td>Python / Go / JS / ... đều OK</td></tr>
+      <tr><td>Phù hợp với</td><td>Prototype, small team</td><td>Production, large org</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section>
+  <h2>9. Cách chạy Stage 5 (sẽ làm sau, theo yêu cầu của bạn)</h2>
+
+<pre><code># Terminal 1: khởi động cả 5 services
+./start_all.sh
+
+# Chờ ~10 giây cho mọi service register xong, sau đó:
+
+# Terminal 2: gửi câu hỏi test
+python test_client.py</code></pre>
+
+  <p>Hoặc chạy từng service riêng để dễ xem log:</p>
+<pre><code># Terminal 1
+python -m registry
+
+# Terminal 2
+python -m tax_agent
+
+# Terminal 3
+python -m compliance_agent
+
+# Terminal 4
+python -m law_agent
+
+# Terminal 5
+python -m customer_agent
+
+# Terminal 6
+python test_client.py</code></pre>
+
+  <h3>Bài tập thực hành (cần khởi động hệ thống)</h3>
+  <table>
+    <thead><tr><th>Bài</th><th>Mục tiêu</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>5.1</strong> Trace request flow</td>
+        <td>Mở 5 terminal logs, tìm <code>trace_id</code> chung trong cả 4 agents → vẽ sequence diagram</td>
+      </tr>
+      <tr>
+        <td><strong>5.2</strong> Test dynamic discovery</td>
+        <td>Dừng Tax Agent (Ctrl+C terminal 2), chạy lại <code>test_client.py</code> → quan sát Law Agent xử lý lỗi <code>404 /discover/tax_question</code></td>
+      </tr>
+      <tr>
+        <td><strong>5.3</strong> Sửa hành vi agent</td>
+        <td>Sửa system prompt trong <code>tax_agent/graph.py</code>, restart tax_agent → test lại để thấy response thay đổi</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<section>
+  <h2>10. Bài tập cộng điểm (Latency optimization)</h2>
+  <div class="info-box bonus">
+    <p><strong>Sau khi chạy đầy đủ Stage 5, trả lời 2 câu hỏi:</strong></p>
+    <ol>
+      <li>Latency (tổng thời gian trả lời 1 câu hỏi) là bao nhiêu giây?</li>
+      <li>Đề xuất phương án giảm latency, demo + show thời gian đã giảm</li>
+    </ol>
+  </div>
+
+  <h3>Gợi ý các hướng tối ưu</h3>
+  <table>
+    <thead><tr><th>Hướng</th><th>Tiết kiệm</th><th>Trade-off</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>Đổi model nhanh hơn (Sonnet → Haiku, GPT-4o → GPT-4o-mini)</td>
+        <td>2-5x</td>
+        <td>Chất lượng có thể giảm</td>
+      </tr>
+      <tr>
+        <td>Streaming response — trả từng token thay vì chờ xong</td>
+        <td>Cảm nhận nhanh hơn</td>
+        <td>Cần frontend support</td>
+      </tr>
+      <tr>
+        <td>Cache câu hỏi đã hỏi (Registry-level hoặc agent-level)</td>
+        <td>~100% cho cache hit</td>
+        <td>Stale data nguy hiểm cho luật</td>
+      </tr>
+      <tr>
+        <td>Connection pooling cho httpx</td>
+        <td>~100ms / call</td>
+        <td>—</td>
+      </tr>
+      <tr>
+        <td>Bỏ <code>analyze_law</code> nếu không thật cần (flatten graph)</td>
+        <td>~1 LLM call</td>
+        <td>Mất context cho specialists</td>
+      </tr>
+      <tr>
+        <td>Giảm system prompt (token càng ít, latency càng nhanh)</td>
+        <td>~10-20%</td>
+        <td>Có thể giảm độ chính xác</td>
+      </tr>
+      <tr>
+        <td>Parallel hơn ở <code>aggregate</code> — gọi LLM tổng hợp luôn khi 1 specialist xong, đừng chờ cả 3</td>
+        <td>~30-50%</td>
+        <td>Cần redesign graph (streaming aggregate)</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<section>
+  <h2>11. Câu hỏi tự kiểm tra</h2>
+  <ol>
+    <li>Ưu điểm của A2A protocol so với gRPC hoặc REST thông thường?</li>
+    <li>Tại sao cần Registry service — sao không hardcode URL trong code?</li>
+    <li>Làm thế nào để prevent infinite delegation loops?</li>
+    <li>Nếu Compliance Agent crash giữa request, hệ thống nên phản hồi như thế nào?</li>
+    <li>Khi nào nên ở lại Stage 4 (in-process), khi nào nên lên Stage 5 (distributed)?</li>
+    <li>Trace propagation có thể thay thế bằng cái gì khác (OpenTelemetry, Jaeger)?</li>
+  </ol>
+</section>
+
+<section>
+  <h2>12. Files liên quan</h2>
+  <div class="ascii">registry/__main__.py              # FastAPI Registry (10000)
+common/registry_client.py         # discover() / register()
+common/a2a_client.py              # delegate() — A2A messaging
+common/llm.py                     # get_llm() (multi-provider)
+
+customer_agent/
+├── __main__.py                   # Server bootstrap, AgentCard, register
+├── agent_executor.py             # A2A SDK ↔ LangGraph bridge
+└── graph.py                      # create_react_agent + delegate tool
+
+law_agent/
+├── __main__.py
+├── agent_executor.py
+└── graph.py                      # StateGraph với Send() parallel
+
+tax_agent/
+├── __main__.py                   # Đăng ký task "tax_question"
+├── agent_executor.py
+└── graph.py                      # create_react_agent + search_tax_law
+
+compliance_agent/
+├── __main__.py                   # Đăng ký task "compliance_question"
+├── agent_executor.py
+└── graph.py                      # create_react_agent + search_compliance_law
+
+start_all.sh                      # Boot 5 services theo thứ tự
+test_client.py                    # E2E client gửi câu hỏi cho Customer Agent</div>
+</section>
+
+<footer>
+  <p>📘 Stage 5 Summary · Batch 02 — Ngày 9 · Multi-Agent System với A2A Protocol</p>
+  <p style="margin-top: 8px;">🎉 Hoàn thành 5 stages — từ Direct LLM đến Distributed A2A System!</p>
+</footer>
+
+</div>
+
+</body>
+</html>

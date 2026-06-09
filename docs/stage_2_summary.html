@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stage 2 — LLM + RAG &amp; Tools · Tóm tắt</title>
+<style>
+  :root {
+    --bg: #0f1419;
+    --panel: #1a1f2e;
+    --panel-2: #232936;
+    --border: #2d3748;
+    --text: #e2e8f0;
+    --text-dim: #94a3b8;
+    --accent: #60a5fa;
+    --accent-2: #a78bfa;
+    --green: #34d399;
+    --orange: #fb923c;
+    --red: #f87171;
+    --yellow: #fbbf24;
+    --code-bg: #0d1117;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+  }
+  .container { max-width: 1000px; margin: 0 auto; padding: 40px 24px 80px; }
+  header {
+    text-align: center;
+    padding: 40px 24px 28px;
+    background: linear-gradient(135deg, #1e3a8a 0%, #312e81 100%);
+    border-radius: 16px;
+    margin-bottom: 32px;
+  }
+  header h1 { font-size: 2.2rem; margin: 0 0 8px; letter-spacing: -0.02em; }
+  header .subtitle { color: #cbd5e1; font-size: 1.05rem; margin: 0; }
+  header .meta {
+    margin-top: 14px;
+    display: inline-flex;
+    gap: 20px;
+    color: #cbd5e1;
+    font-size: 0.92rem;
+  }
+  header .meta span::before { content: "• "; color: var(--accent); }
+  header .meta span:first-child::before { content: ""; }
+
+  section {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 26px 30px;
+    margin-bottom: 22px;
+  }
+  section h2 {
+    margin: 0 0 14px;
+    color: var(--accent);
+    font-size: 1.45rem;
+    border-bottom: 2px solid var(--border);
+    padding-bottom: 10px;
+  }
+  section h3 {
+    color: var(--accent-2);
+    margin: 20px 0 10px;
+    font-size: 1.12rem;
+  }
+  section h4 {
+    color: var(--yellow);
+    margin: 14px 0 6px;
+    font-size: 1rem;
+  }
+  p { margin: 8px 0; }
+  ul li, ol li { margin: 3px 0; }
+
+  code {
+    background: var(--code-bg);
+    color: #e6edf3;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.9em;
+  }
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    overflow-x: auto;
+    font-size: 0.86rem;
+    line-height: 1.55;
+  }
+  pre code { background: transparent; padding: 0; }
+
+  .ascii {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 18px;
+    font-family: "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.88rem;
+    line-height: 1.5;
+    white-space: pre;
+    overflow-x: auto;
+    color: #cbd5e1;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 14px 0;
+    background: var(--panel-2);
+    border-radius: 8px;
+    overflow: hidden;
+    font-size: 0.95rem;
+  }
+  th, td {
+    padding: 9px 13px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  th { background: #2d3748; color: var(--accent); font-weight: 600; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(96, 165, 250, 0.05); }
+
+  .info-box {
+    background: rgba(96, 165, 250, 0.08);
+    border-left: 4px solid var(--accent);
+    border-radius: 6px;
+    padding: 10px 16px;
+    margin: 14px 0;
+  }
+  .info-box.tip { background: rgba(52, 211, 153, 0.08); border-left-color: var(--green); }
+  .info-box.warn { background: rgba(251, 146, 60, 0.08); border-left-color: var(--orange); }
+  .info-box.quote { background: rgba(167, 139, 250, 0.08); border-left-color: var(--accent-2); }
+
+  .flow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin: 14px 0;
+  }
+  .flow .step {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-size: 0.92rem;
+  }
+  .flow .arrow { color: var(--accent); font-size: 1.3rem; }
+
+  footer {
+    text-align: center;
+    color: var(--text-dim);
+    padding: 26px 16px;
+    font-size: 0.92rem;
+  }
+
+  .tag {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    margin-right: 6px;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    color: var(--accent);
+  }
+
+  @media (max-width: 700px) {
+    header h1 { font-size: 1.6rem; }
+    section { padding: 18px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+<header>
+  <h1>Stage 2 — LLM + RAG &amp; Tools</h1>
+  <p class="subtitle">Grounding LLM bằng knowledge base và function calling thủ công</p>
+  <div class="meta">
+    <span>⭐⭐ Trung bình</span>
+    <span>30 phút</span>
+    <span>LangChain · @tool · bind_tools</span>
+  </div>
+</header>
+
+<section>
+  <h2>1. Ý tưởng</h2>
+  <p>Stage 1 chỉ dựa vào training data → hay bịa. Stage 2 cho LLM <strong>2 khả năng mới</strong>:</p>
+  <ul>
+    <li><strong>RAG (Retrieval-Augmented Generation)</strong> — tra cứu knowledge base trước khi trả lời</li>
+    <li><strong>Tool use (Function calling)</strong> — gọi Python function để tính toán/truy vấn data</li>
+  </ul>
+
+  <h3>Tool-call loop (manual — viết tay)</h3>
+  <div class="flow">
+    <div class="step">1. Bind tools vào LLM</div>
+    <div class="arrow">→</div>
+    <div class="step">2. LLM chọn tool + args</div>
+    <div class="arrow">→</div>
+    <div class="step">3. Code execute tool</div>
+    <div class="arrow">→</div>
+    <div class="step">4. Đẩy kết quả về LLM</div>
+    <div class="arrow">→</div>
+    <div class="step">5. LLM tổng hợp câu trả lời</div>
+  </div>
+
+  <div class="info-box warn">
+    <strong>⚠️ Hạn chế:</strong> chỉ <strong>1 vòng tool call</strong>. Nếu LLM cần search lại lần 2, ta phải tự code thêm vòng lặp → đến Stage 3 (ReAct) thì agent tự lặp.
+  </div>
+</section>
+
+<section>
+  <h2>2. Code chính</h2>
+  <p><strong>File:</strong> <code>stages/stage_2_rag_tools/main.py</code></p>
+
+<pre><code>from langchain_core.tools import tool
+
+@tool
+def search_legal_database(query: str) -> str:
+    """Search the legal knowledge base for relevant statutes."""
+    # ... keyword match trong LEGAL_KNOWLEDGE
+    return matching_text
+
+@tool
+def calculate_damages(breach_type: str, contract_value: float) -> str:
+    """Calculate estimated damages for a contract breach."""
+    # ... business logic
+    return f"Total estimated exposure: ${total:,.2f}"
+
+TOOLS = [search_legal_database, calculate_damages]
+
+llm = get_llm()
+llm_with_tools = llm.bind_tools(TOOLS)   # ⭐ binding
+
+# Vòng 1: LLM quyết định gọi tool nào
+response = await llm_with_tools.ainvoke(messages)
+messages.append(response)
+
+# Vòng 2: code execute tool và đẩy kết quả về
+for tc in response.tool_calls:
+    result = await tool_map[tc["name"]].ainvoke(tc["args"])
+    messages.append(ToolMessage(content=result, tool_call_id=tc["id"]))
+
+# Vòng 3: LLM tổng hợp câu trả lời
+final = await llm_with_tools.ainvoke(messages)
+</code></pre>
+
+  <h3>3 Message types trong tool loop</h3>
+  <table>
+    <thead><tr><th>Message</th><th>Ai tạo</th><th>Mục đích</th></tr></thead>
+    <tbody>
+      <tr><td><code>HumanMessage</code></td><td>User</td><td>Câu hỏi gốc</td></tr>
+      <tr><td><code>AIMessage</code> (có <code>tool_calls</code>)</td><td>LLM</td><td>"Tôi muốn gọi tool X với args Y"</td></tr>
+      <tr><td><code>ToolMessage</code></td><td>Code (chúng ta)</td><td>Kết quả thực thi tool, gắn với <code>tool_call_id</code></td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section>
+  <h2>3. Knowledge Base — Keyword RAG</h2>
+  <p>Demo dùng <strong>keyword matching</strong> đơn giản (production sẽ dùng vector store như Pinecone/Weaviate/Qdrant).</p>
+
+<pre><code>LEGAL_KNOWLEDGE = [
+    {
+        "id": "ucc_breach",
+        "keywords": ["breach", "contract", "remedies", "damages", "ucc"],
+        "text": "Under the UCC Article 2, remedies include ..."
+    },
+    # ...
+]
+
+@tool
+def search_legal_database(query: str) -> str:
+    q = query.lower()
+    scored = [(sum(1 for kw in e["keywords"] if kw in q), e)
+              for e in LEGAL_KNOWLEDGE]
+    scored = [s for s in scored if s[0] > 0]
+    scored.sort(reverse=True)
+    return "\n\n".join(f"[{e['id']}] {e['text']}" for _, e in scored[:2])
+</code></pre>
+
+  <div class="info-box tip">
+    <strong>💡 Tip về keyword matching tiếng Việt:</strong> nếu keyword là cụm 2 chữ ("sa thải", "lao động") thì phải dùng <strong>substring match</strong> (<code>kw in query</code>), không dùng <code>set intersection</code> trên từ đơn. Lý do: <code>split()</code> sẽ tách "sa thải" thành ["sa", "thải"] và không match được.
+  </div>
+</section>
+
+<section>
+  <h2>4. Anatomy của <code>@tool</code></h2>
+  <p>LLM "đọc" 3 thứ để quyết định gọi tool:</p>
+  <ol>
+    <li><strong>Tên function</strong> — phải mô tả đúng việc nó làm</li>
+    <li><strong>Docstring</strong> — đây là phần LLM dựa vào nhiều nhất</li>
+    <li><strong>Type hints</strong> — schema args (kiểu, default, optional...)</li>
+  </ol>
+
+<pre><code>@tool
+def check_statute_of_limitations(case_type: str) -> str:
+    """Kiểm tra thời hiệu khởi kiện theo loại vụ án.
+
+    Args:
+        case_type: Loại vụ án. Hỗ trợ: contract, tort, property, nda, ...
+    """
+    # ...
+</code></pre>
+
+  <div class="info-box warn">
+    <strong>⚠️ Quy tắc viết docstring cho tool:</strong> ngắn gọn, nêu rõ <em>khi nào</em> dùng tool này, liệt kê giá trị args hợp lệ. Docstring tệ → LLM gọi sai tool hoặc gọi với args sai.
+  </div>
+</section>
+
+<section>
+  <h2>5. Bài tập đã hoàn thành</h2>
+
+  <h3>Exercise 2.1 — Thêm entry mới vào KB</h3>
+  <p><strong>File:</strong> <code>exercises/exercise_2_1_knowledge.py</code></p>
+  <p>Thêm entry <code>labor_law</code> chứa Điều 36 Bộ luật Lao động VN 2019 (6 trường hợp đơn phương chấm dứt HĐLĐ + thời gian báo trước).</p>
+
+  <h4>Kết quả thực nghiệm</h4>
+  <div class="info-box quote">
+    <strong>Câu hỏi:</strong> <em>"Theo luật lao động Việt Nam, doanh nghiệp có quyền sa thải nhân viên trong những trường hợp nào và phải báo trước bao lâu?"</em>
+  </div>
+
+  <p>LLM gọi <code>search_legal_knowledge</code> với query <em>"luật lao động Việt Nam sa thải nhân viên..."</em> → match entry <code>labor_law</code> → tổng hợp câu trả lời:</p>
+  <ul>
+    <li>✅ Liệt kê đủ 6 trường hợp đơn phương chấm dứt HĐLĐ</li>
+    <li>✅ Cite đúng "Bộ luật Lao động 2019"</li>
+    <li>✅ Đưa đủ 3 mốc báo trước: 45 / 30 / 3 ngày</li>
+  </ul>
+
+  <h4>Bug đã sửa trong lúc làm</h4>
+  <div class="info-box warn">
+    Lần chạy đầu trả "Không tìm thấy" vì <code>search_legal_knowledge</code> dùng <code>set(query.split()) &amp; set(keywords)</code> — không match được keyword 2 chữ tiếng Việt. Đã đổi sang <strong>substring match</strong> (<code>any(kw.lower() in query.lower() for kw in keywords)</code>).
+  </div>
+
+  <h3>Exercise 2.2 — Tạo tool mới</h3>
+  <p><strong>File:</strong> <code>exercises/exercise_2_2_new_tool.py</code></p>
+  <p>Thêm tool thứ 2 <code>check_statute_of_limitations(case_type)</code> hỗ trợ 7 loại vụ án (contract, tort, property, nda, trade_secret, employment, criminal).</p>
+
+  <h4>Kết quả thực nghiệm</h4>
+  <div class="info-box quote">
+    <strong>Câu hỏi:</strong> <em>"Tôi muốn kiện công ty cũ vì vi phạm NDA và đánh cắp trade secret. Cho tôi biết các remedies và thời hiệu khởi kiện."</em>
+  </div>
+
+  <p>LLM <strong>tự gọi cả 2 tools cùng vòng</strong>:</p>
+  <ul>
+    <li>🔧 <code>search_legal_knowledge(query="remedies for NDA violation and trade secret theft")</code> → trả về remedies từ UCC</li>
+    <li>🔧 <code>check_statute_of_limitations(case_type="nda")</code> → trả về "4 năm hoặc 3 năm dưới DTSA"</li>
+  </ul>
+  <p>→ LLM tổng hợp thành câu trả lời có cả remedies và thời hiệu khởi kiện trong một response.</p>
+
+  <div class="info-box tip">
+    <strong>💡 Insight quan trọng:</strong> Khi câu hỏi gồm nhiều ý, LLM tự quyết định cần bao nhiêu tool calls — không phải code quyết định. Đây là tiền đề cho <strong>ReAct agent</strong> ở Stage 3.
+  </div>
+</section>
+
+<section>
+  <h2>6. So sánh Stage 1 → Stage 2</h2>
+  <table>
+    <thead><tr><th>Khía cạnh</th><th>Stage 1 (Direct)</th><th>Stage 2 (Tools)</th></tr></thead>
+    <tbody>
+      <tr><td>Nguồn thông tin</td><td>Training data</td><td>Training data + KB + Python functions</td></tr>
+      <tr><td>Tính chính xác</td><td>Có thể bịa</td><td>Grounded vào data thực</td></tr>
+      <tr><td>Cite được nguồn?</td><td>Không đảm bảo</td><td>Có (cite ID entry, statutes)</td></tr>
+      <tr><td>Tính toán động?</td><td>Phải tự làm</td><td>Có (tool calculate_damages)</td></tr>
+      <tr><td>Số vòng tool call</td><td>0</td><td>1 (single-pass)</td></tr>
+      <tr><td>Code orchestration</td><td>Không có</td><td>Manual loop (chúng ta viết tay)</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section>
+  <h2>7. Hạn chế Stage 2 → động lực cho Stage 3</h2>
+  <table>
+    <thead><tr><th>Hạn chế Stage 2</th><th>Stage 3 (ReAct) giải quyết</th></tr></thead>
+    <tbody>
+      <tr><td>Chỉ 1 vòng tool call</td><td>Vòng lặp Think→Act→Observe tự động</td></tr>
+      <tr><td>Tool loop viết tay</td><td><code>create_react_agent()</code> đóng gói sẵn</td></tr>
+      <tr><td>Không tự retry/refine query</td><td>Agent tự gọi lại tool nếu kết quả chưa đủ</td></tr>
+      <tr><td>Code dài, lặp lại</td><td>Vài dòng setup, agent tự lo</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section>
+  <h2>8. Cách chạy</h2>
+<pre><code># Demo gốc Stage 2
+python stages/stage_2_rag_tools/main.py
+
+# Bài 2.1 — thêm entry labor_law vào KB
+python exercises/exercise_2_1_knowledge.py
+
+# Bài 2.2 — thêm tool check_statute_of_limitations
+python exercises/exercise_2_2_new_tool.py</code></pre>
+</section>
+
+<section>
+  <h2>9. Câu hỏi tự kiểm tra</h2>
+  <ol>
+    <li>Vì sao docstring của <code>@tool</code> lại quan trọng hơn cả tên function?</li>
+    <li>Nếu LLM gọi tool với args sai (vd <code>case_type="bất động sản"</code> thay vì <code>"property"</code>), nên xử lý thế nào?</li>
+    <li>RAG keyword match có hạn chế gì so với vector embedding search?</li>
+    <li>Tại sao Stage 2 lại "không có conversation memory" dù có nhiều messages?</li>
+    <li>Khi nào nên thiết kế 1 tool to (vạn năng) thay vì nhiều tool nhỏ chuyên biệt?</li>
+  </ol>
+</section>
+
+<section>
+  <h2>10. Files liên quan</h2>
+  <div class="ascii">stages/stage_2_rag_tools/main.py             # Demo gốc — KB + 2 tools
+exercises/exercise_2_1_knowledge.py          # Bài 2.1 — entry labor_law
+exercises/exercise_2_2_new_tool.py           # Bài 2.2 — check_statute_of_limitations
+exercises/exercise_2_tools.py                # File template gốc (có TODO)
+common/llm.py                                # get_llm() — đã hỗ trợ multi-provider</div>
+</section>
+
+<footer>
+  <p>📘 Stage 2 Summary · Batch 02 — Ngày 9 · Multi-Agent System với A2A Protocol</p>
+</footer>
+
+</div>
+
+</body>
+</html>

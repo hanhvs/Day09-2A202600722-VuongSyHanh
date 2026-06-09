@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stage 4 — Multi-Agent In-Process · Tóm tắt</title>
+<style>
+  :root {
+    --bg: #0f1419;
+    --panel: #1a1f2e;
+    --panel-2: #232936;
+    --border: #2d3748;
+    --text: #e2e8f0;
+    --text-dim: #94a3b8;
+    --accent: #60a5fa;
+    --accent-2: #a78bfa;
+    --green: #34d399;
+    --orange: #fb923c;
+    --red: #f87171;
+    --yellow: #fbbf24;
+    --code-bg: #0d1117;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+  }
+  .container { max-width: 1000px; margin: 0 auto; padding: 40px 24px 80px; }
+  header {
+    text-align: center;
+    padding: 40px 24px 28px;
+    background: linear-gradient(135deg, #9a3412 0%, #581c87 100%);
+    border-radius: 16px;
+    margin-bottom: 32px;
+  }
+  header h1 { font-size: 2.2rem; margin: 0 0 8px; letter-spacing: -0.02em; }
+  header .subtitle { color: #f5e8e0; font-size: 1.05rem; margin: 0; }
+  header .meta {
+    margin-top: 14px;
+    display: inline-flex;
+    gap: 20px;
+    color: #f5e8e0;
+    font-size: 0.92rem;
+  }
+  header .meta span::before { content: "• "; color: var(--yellow); }
+  header .meta span:first-child::before { content: ""; }
+
+  section {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 26px 30px;
+    margin-bottom: 22px;
+  }
+  section h2 {
+    margin: 0 0 14px;
+    color: var(--accent);
+    font-size: 1.45rem;
+    border-bottom: 2px solid var(--border);
+    padding-bottom: 10px;
+  }
+  section h3 {
+    color: var(--accent-2);
+    margin: 20px 0 10px;
+    font-size: 1.12rem;
+  }
+  section h4 {
+    color: var(--yellow);
+    margin: 14px 0 6px;
+    font-size: 1rem;
+  }
+  p { margin: 8px 0; }
+  ul li, ol li { margin: 3px 0; }
+
+  code {
+    background: var(--code-bg);
+    color: #e6edf3;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.9em;
+  }
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    overflow-x: auto;
+    font-size: 0.86rem;
+    line-height: 1.55;
+  }
+  pre code { background: transparent; padding: 0; }
+
+  .ascii {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 18px;
+    font-family: "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.88rem;
+    line-height: 1.5;
+    white-space: pre;
+    overflow-x: auto;
+    color: #cbd5e1;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 14px 0;
+    background: var(--panel-2);
+    border-radius: 8px;
+    overflow: hidden;
+    font-size: 0.95rem;
+  }
+  th, td {
+    padding: 9px 13px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  th { background: #2d3748; color: var(--accent); font-weight: 600; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(96, 165, 250, 0.05); }
+  td.ok { color: var(--green); font-weight: 600; }
+  td.fail { color: var(--red); font-weight: 600; }
+
+  .info-box {
+    background: rgba(96, 165, 250, 0.08);
+    border-left: 4px solid var(--accent);
+    border-radius: 6px;
+    padding: 10px 16px;
+    margin: 14px 0;
+  }
+  .info-box.tip { background: rgba(52, 211, 153, 0.08); border-left-color: var(--green); }
+  .info-box.warn { background: rgba(251, 146, 60, 0.08); border-left-color: var(--orange); }
+  .info-box.quote { background: rgba(167, 139, 250, 0.08); border-left-color: var(--accent-2); }
+
+  .graph {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 22px;
+    margin: 16px 0;
+  }
+  .graph .row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin: 10px 0;
+  }
+  .graph .node {
+    background: var(--panel-2);
+    border: 2px solid var(--accent);
+    border-radius: 10px;
+    padding: 10px 16px;
+    text-align: center;
+    min-width: 130px;
+    font-size: 0.92rem;
+  }
+  .graph .node.entry { border-color: var(--green); }
+  .graph .node.router { border-color: var(--accent-2); }
+  .graph .node.specialist { border-color: var(--orange); }
+  .graph .node.aggregator { border-color: var(--yellow); }
+  .graph .arrow { color: var(--accent); font-size: 1.4rem; font-weight: 700; }
+  .graph .label {
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 0.82rem;
+    margin: 4px 0;
+  }
+
+  footer {
+    text-align: center;
+    color: var(--text-dim);
+    padding: 26px 16px;
+    font-size: 0.92rem;
+  }
+
+  @media (max-width: 700px) {
+    header h1 { font-size: 1.6rem; }
+    section { padding: 18px; }
+    .graph .row { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+<header>
+  <h1>Stage 4 — Multi-Agent In-Process</h1>
+  <p class="subtitle">Nhiều specialist agents cộng tác qua LangGraph StateGraph + Send API</p>
+  <div class="meta">
+    <span>⭐⭐⭐⭐ Khó</span>
+    <span>30 phút</span>
+    <span>StateGraph · Send() · Annotated reducers</span>
+  </div>
+</header>
+
+<section>
+  <h2>1. Ý tưởng</h2>
+  <p>Stage 3 dùng <strong>1 agent ôm hết</strong> (law + tax + compliance trong 1 system prompt). Stage 4 <strong>tách thành nhiều specialists</strong>, mỗi agent:</p>
+  <ul>
+    <li>Có <strong>system prompt riêng</strong> tập trung 1 domain</li>
+    <li>Có <strong>tool riêng</strong> (vd tax có <code>search_tax_law</code>, compliance có <code>search_compliance_law</code>)</li>
+    <li>Chạy <strong>song song</strong> qua LangGraph <code>Send()</code> API</li>
+  </ul>
+
+  <div class="info-box tip">
+    <strong>💡 Tại sao tách?</strong> Cùng câu hỏi nhưng 3 góc nhìn khác nhau (luật / thuế / compliance) — nếu nhồi vào 1 prompt thì LLM dễ trộn lẫn, mỗi domain bị nông. Tách ra → mỗi agent có "không gian" riêng để phân tích sâu.
+  </div>
+</section>
+
+<section>
+  <h2>2. Graph Topology</h2>
+  <p><strong>File:</strong> <code>stages/stage_4_milti_agent/main.py</code></p>
+
+  <div class="graph">
+    <div class="row">
+      <div class="node entry">analyze_law<br><small>Lead attorney</small></div>
+      <div class="arrow">→</div>
+      <div class="node router">check_routing<br><small>LLM router</small></div>
+    </div>
+    <div class="label">↓ dispatch Send() song song</div>
+    <div class="row">
+      <div class="node specialist">call_tax_specialist<br><small>ReAct + tax tool</small></div>
+      <div class="node specialist">call_compliance<br><small>ReAct + compliance tool</small></div>
+    </div>
+    <div class="label">↓ merge results</div>
+    <div class="row">
+      <div class="node aggregator">aggregate<br><small>Senior counsel</small></div>
+      <div class="arrow">→</div>
+      <div class="node">END</div>
+    </div>
+  </div>
+
+  <p>Tổng cộng <strong>5 nodes</strong> + 2 conditional edges. Mỗi specialist chính nó cũng là <strong>1 ReAct agent</strong> (Stage 3 nested) → agent-trong-agent.</p>
+</section>
+
+<section>
+  <h2>3. 4 thành phần LangGraph quan trọng</h2>
+
+  <h3>3.1 — <code>StateGraph</code> + <code>TypedDict</code></h3>
+  <p>State là <strong>dữ liệu chia sẻ</strong> giữa các nodes. Mỗi node nhận state làm input, return một dict update vào state.</p>
+
+<pre><code>class LegalState(TypedDict):
+    question: str
+    law_analysis: str
+    needs_tax: bool
+    needs_compliance: bool
+    tax_result: Annotated[str, _last_wins]      # ← reducer!
+    compliance_result: Annotated[str, _last_wins]
+    final_answer: str</code></pre>
+
+  <h3>3.2 — <code>Annotated[..., reducer]</code> reducer</h3>
+  <p>Khi <strong>nhiều nodes ghi vào cùng 1 field song song</strong>, LangGraph cần biết cách merge. <code>Annotated</code> chỉ định reducer:</p>
+
+<pre><code>def _last_wins(a: str, b: str) -> str:
+    return b if b else a
+
+tax_result: Annotated[str, _last_wins]</code></pre>
+
+  <div class="info-box warn">
+    <strong>⚠️ Nếu quên <code>Annotated</code></strong> mà có 2 nodes cùng ghi → LangGraph báo <em>"INVALID_CONCURRENT_GRAPH_UPDATE"</em>. Mỗi field có 2+ writer song song <strong>bắt buộc</strong> phải có reducer.
+  </div>
+
+  <h3>3.3 — <code>Send()</code> API (parallel dispatch)</h3>
+  <p><code>Send(node_name, state)</code> dispatch task tới node — nếu trả về <code>list[Send]</code> trong conditional edge, các tasks chạy <strong>song song</strong>:</p>
+
+<pre><code>def route_to_specialists(state) -> list[Send]:
+    sends = []
+    if state["needs_tax"]:
+        sends.append(Send("call_tax_specialist", state))
+    if state["needs_compliance"]:
+        sends.append(Send("call_compliance_specialist", state))
+    return sends</code></pre>
+
+  <h3>3.4 — <code>add_conditional_edges</code></h3>
+<pre><code>graph.add_conditional_edges(
+    "check_routing",                                    # ← từ node này
+    route_to_specialists,                               # ← hàm quyết định
+    ["call_tax_specialist", "call_compliance_specialist", "aggregate"],   # ← các đích
+)</code></pre>
+</section>
+
+<section>
+  <h2>4. So sánh Stage 3 vs Stage 4</h2>
+  <table>
+    <thead><tr><th>Khía cạnh</th><th>Stage 3 — Single ReAct</th><th>Stage 4 — Multi-Agent</th></tr></thead>
+    <tbody>
+      <tr><td>Số agent</td><td>1</td><td>N (mỗi domain 1)</td></tr>
+      <tr><td>System prompt</td><td>1 prompt "kiêm nhiệm" mọi domain</td><td>Mỗi agent 1 prompt chuyên sâu</td></tr>
+      <tr><td>Tools per agent</td><td>Tất cả tools chung</td><td>Mỗi agent chỉ thấy tool của mình</td></tr>
+      <tr><td>Parallel</td><td>Tools song song trong 1 agent</td><td>Cả agents chạy song song</td></tr>
+      <tr><td>Routing</td><td>Không có</td><td>LLM router quyết định bật/tắt</td></tr>
+      <tr><td>Code structure</td><td>1 file, 1 agent</td><td>Graph với nodes + edges</td></tr>
+      <tr><td>Mở rộng</td><td>Thêm tool/prompt vào agent</td><td>Thêm 1 node + 1 edge</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section>
+  <h2>5. Bài tập đã hoàn thành</h2>
+
+  <h3>Exercise 4.1 — Thêm <code>privacy_specialist</code> (4 agents)</h3>
+  <p><strong>File:</strong> <code>exercises/exercise_4_1_privacy_agent.py</code></p>
+  <p>Thêm:</p>
+  <ul>
+    <li>Tool <code>search_privacy_law</code> — KB về GDPR, CCPA, breach notification, cookie consent</li>
+    <li>Field <code>privacy_result: Annotated[str, _last_wins]</code> trong state</li>
+    <li>Node <code>call_privacy_specialist</code> — ReAct agent với prompt CIPP/E</li>
+    <li>Update <code>route_to_specialists</code> để dispatch khi <code>needs_privacy=True</code></li>
+    <li>Update <code>aggregate</code> để merge thêm privacy section</li>
+  </ul>
+
+  <h4>Kết quả thực nghiệm</h4>
+  <div class="info-box quote">
+    <strong>Câu hỏi:</strong> <em>"Công ty fintech tại Mỹ bị rò rỉ dữ liệu khách hàng EU (gồm thông tin thẻ tín dụng), không nộp tax cho doanh thu offshore, và CFO ký báo cáo tài chính sai. Các hậu quả pháp lý/thuế/compliance/privacy là gì?"</em>
+  </div>
+
+<pre><code>[Node: check_routing] {'needs_tax': True, 'needs_compliance': True, 'needs_privacy': True}
+
+[Node: call_tax_specialist] starting...
+[Node: call_compliance_specialist] starting...   ← 3 dòng "starting"
+[Node: call_privacy_specialist] starting...      ← liền nhau = song song
+[Node: call_privacy_specialist] Done (1018 chars)
+[Node: call_compliance_specialist] Done (857 chars)
+[Node: call_tax_specialist] Done (930 chars)</code></pre>
+
+  <p>Final answer cite đủ: <strong>GDPR (4% revenue/€20M, 72h notification, Art. 17/20), CCPA ($7,500/$2,500), SOX, IRC § 7201, FBAR, FATCA</strong>.</p>
+
+  <h3>Exercise 4.2 — Conditional Routing (LLM-based)</h3>
+  <p><strong>File:</strong> <code>exercises/exercise_4_2_conditional_routing.py</code></p>
+  <p>Chạy 3 câu hỏi để verify router thật sự "selective" — chỉ dispatch specialists có liên quan, tiết kiệm LLM calls.</p>
+
+  <h4>Kết quả thực nghiệm</h4>
+  <table>
+    <thead><tr><th>Test case</th><th>Expected</th><th>Fired</th><th>Latency</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>Q1 — "Không kê khai doanh thu nước ngoài, IRS phát hiện..."</td>
+        <td><code>{tax}</code></td>
+        <td><code>{tax}</code></td>
+        <td>4.89s</td>
+        <td class="ok">✅ PASS</td>
+      </tr>
+      <tr>
+        <td>Q2 — "Cookie tracking không xin consent EU, vi phạm GDPR?"</td>
+        <td><code>{privacy}</code></td>
+        <td><code>{privacy}</code></td>
+        <td>4.40s</td>
+        <td class="ok">✅ PASS</td>
+      </tr>
+      <tr>
+        <td>Q3 — "CFO ký báo cáo tài chính sai để trốn thuế, vi phạm SOX/tax?"</td>
+        <td><code>{tax, compliance}</code></td>
+        <td><code>{tax, compliance}</code></td>
+        <td>5.65s</td>
+        <td class="ok">✅ PASS</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="info-box tip">
+    <strong>💡 Trade-off của LLM-based routing:</strong>
+    <ul>
+      <li><strong>✅</strong> Hiểu được ngữ cảnh phức tạp + đa ngôn ngữ (VN/EN trộn lẫn)</li>
+      <li><strong>❌</strong> Không deterministic — có thể sai (so với keyword match cứng)</li>
+      <li><strong>💰</strong> Cost: thêm 1 LLM call cho mỗi câu hỏi, nhưng tiết kiệm được N-1 specialist calls không cần thiết</li>
+    </ul>
+  </div>
+</section>
+
+<section>
+  <h2>6. Lưu ý kỹ thuật quan trọng</h2>
+
+  <h3>Tại sao cần reducer cho <code>tax_result</code> nhưng không cần cho <code>law_analysis</code>?</h3>
+  <p>Vì <code>law_analysis</code> chỉ ghi 1 lần ở node <code>analyze_law</code> (không có node nào khác ghi song song). Còn <code>tax_result</code>, <code>compliance_result</code>, <code>privacy_result</code> — nếu Send() dispatch nhiều specialist, mỗi specialist trả về dict có thể trùng key → cần reducer.</p>
+
+  <h3>Khi nào dùng <code>conditional_edges</code> vs <code>add_edge</code>?</h3>
+  <ul>
+    <li><code>add_edge(A, B)</code> — luôn đi từ A → B</li>
+    <li><code>add_conditional_edges(A, fn, [...])</code> — đi đâu phụ thuộc <code>fn(state)</code> trả về</li>
+  </ul>
+
+  <h3>Specialist trong Stage 4 chính là ReAct agent (Stage 3)</h3>
+  <p>Mỗi node specialist nội bộ tạo ra một <code>create_react_agent</code>. Tức là <strong>multi-agent = các single agents được orchestrate bởi graph</strong>.</p>
+</section>
+
+<section>
+  <h2>7. Hạn chế Stage 4 → động lực cho Stage 5</h2>
+  <table>
+    <thead><tr><th>Hạn chế Stage 4 (in-process)</th><th>Stage 5 (A2A) giải quyết</th></tr></thead>
+    <tbody>
+      <tr><td>Tất cả agents chung 1 process</td><td>Mỗi agent là 1 HTTP service riêng</td></tr>
+      <tr><td>Không scale từng agent riêng được</td><td>Scale tax_agent độc lập với compliance_agent</td></tr>
+      <tr><td>1 agent crash = cả system die</td><td>Agent crash khác vẫn chạy (fault tolerant)</td></tr>
+      <tr><td>Hardcode import giữa agents</td><td>Dynamic discovery qua Registry</td></tr>
+      <tr><td>Khó deploy nhiều ngôn ngữ</td><td>Mỗi agent có thể là Python/Go/JS qua A2A protocol</td></tr>
+    </tbody>
+  </table>
+
+  <div class="info-box">
+    <strong>Insight:</strong> Stage 5 dùng <em>cùng graph topology</em> như Stage 4 — chỉ thay function call thành A2A HTTP call. Hiểu Stage 4 vững là chìa khóa cho Stage 5.
+  </div>
+</section>
+
+<section>
+  <h2>8. Cách chạy</h2>
+<pre><code># Demo gốc Stage 4
+python stages/stage_4_milti_agent/main.py
+
+# Bài 4.1 — thêm Privacy Agent (4 agents, 3 specialists song song)
+python exercises/exercise_4_1_privacy_agent.py
+
+# Bài 4.2 — conditional routing (3 test cases)
+python exercises/exercise_4_2_conditional_routing.py</code></pre>
+</section>
+
+<section>
+  <h2>9. Câu hỏi tự kiểm tra</h2>
+  <ol>
+    <li>Nếu xoá <code>Annotated[str, _last_wins]</code> khỏi <code>tax_result</code>, điều gì xảy ra khi 2 specialists cùng ghi vào field này?</li>
+    <li><code>Send(node, state)</code> khác gì <code>graph.add_edge(A, node)</code>?</li>
+    <li>Tại sao <code>route_to_specialists</code> là <strong>hàm thường</strong> (không async, không LLM call)?</li>
+    <li>Khi nào nên dùng LLM-based routing (như Stage 4) vs keyword-based routing (rule)?</li>
+    <li>Multi-agent có làm latency cao hơn không? Có cách nào giảm?</li>
+  </ol>
+</section>
+
+<section>
+  <h2>10. Files liên quan</h2>
+  <div class="ascii">stages/stage_4_milti_agent/main.py            # Demo gốc — 5 nodes
+exercises/exercise_4_1_privacy_agent.py       # Bài 4.1 — thêm privacy (4 agents)
+exercises/exercise_4_2_conditional_routing.py # Bài 4.2 — verify routing
+exercises/exercise_4_multiagent.py            # File template gốc (có TODO)
+common/llm.py                                 # get_llm() multi-provider</div>
+</section>
+
+<footer>
+  <p>📘 Stage 4 Summary · Batch 02 — Ngày 9 · Multi-Agent System với A2A Protocol</p>
+</footer>
+
+</div>
+
+</body>
+</html>

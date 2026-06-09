@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stage 3 — ReAct Single Agent · Tóm tắt</title>
+<style>
+  :root {
+    --bg: #0f1419;
+    --panel: #1a1f2e;
+    --panel-2: #232936;
+    --border: #2d3748;
+    --text: #e2e8f0;
+    --text-dim: #94a3b8;
+    --accent: #60a5fa;
+    --accent-2: #a78bfa;
+    --green: #34d399;
+    --orange: #fb923c;
+    --red: #f87171;
+    --yellow: #fbbf24;
+    --code-bg: #0d1117;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+  }
+  .container { max-width: 1000px; margin: 0 auto; padding: 40px 24px 80px; }
+  header {
+    text-align: center;
+    padding: 40px 24px 28px;
+    background: linear-gradient(135deg, #581c87 0%, #1e3a8a 100%);
+    border-radius: 16px;
+    margin-bottom: 32px;
+  }
+  header h1 { font-size: 2.2rem; margin: 0 0 8px; letter-spacing: -0.02em; }
+  header .subtitle { color: #cbd5e1; font-size: 1.05rem; margin: 0; }
+  header .meta {
+    margin-top: 14px;
+    display: inline-flex;
+    gap: 20px;
+    color: #cbd5e1;
+    font-size: 0.92rem;
+  }
+  header .meta span::before { content: "• "; color: var(--accent); }
+  header .meta span:first-child::before { content: ""; }
+
+  section {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 26px 30px;
+    margin-bottom: 22px;
+  }
+  section h2 {
+    margin: 0 0 14px;
+    color: var(--accent);
+    font-size: 1.45rem;
+    border-bottom: 2px solid var(--border);
+    padding-bottom: 10px;
+  }
+  section h3 {
+    color: var(--accent-2);
+    margin: 20px 0 10px;
+    font-size: 1.12rem;
+  }
+  section h4 {
+    color: var(--yellow);
+    margin: 14px 0 6px;
+    font-size: 1rem;
+  }
+  p { margin: 8px 0; }
+  ul li, ol li { margin: 3px 0; }
+
+  code {
+    background: var(--code-bg);
+    color: #e6edf3;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.9em;
+  }
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    overflow-x: auto;
+    font-size: 0.86rem;
+    line-height: 1.55;
+  }
+  pre code { background: transparent; padding: 0; }
+
+  .ascii {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 18px;
+    font-family: "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.88rem;
+    line-height: 1.5;
+    white-space: pre;
+    overflow-x: auto;
+    color: #cbd5e1;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 14px 0;
+    background: var(--panel-2);
+    border-radius: 8px;
+    overflow: hidden;
+    font-size: 0.95rem;
+  }
+  th, td {
+    padding: 9px 13px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  th { background: #2d3748; color: var(--accent); font-weight: 600; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(96, 165, 250, 0.05); }
+
+  .info-box {
+    background: rgba(96, 165, 250, 0.08);
+    border-left: 4px solid var(--accent);
+    border-radius: 6px;
+    padding: 10px 16px;
+    margin: 14px 0;
+  }
+  .info-box.tip { background: rgba(52, 211, 153, 0.08); border-left-color: var(--green); }
+  .info-box.warn { background: rgba(251, 146, 60, 0.08); border-left-color: var(--orange); }
+  .info-box.quote { background: rgba(167, 139, 250, 0.08); border-left-color: var(--accent-2); }
+
+  .react-loop {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 22px;
+    margin: 16px 0;
+  }
+  .react-loop .cycle {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    font-size: 0.95rem;
+  }
+  .react-loop .node {
+    background: var(--panel-2);
+    border: 2px solid var(--accent);
+    border-radius: 10px;
+    padding: 12px 18px;
+    text-align: center;
+    min-width: 130px;
+  }
+  .react-loop .node.observe { border-color: var(--green); }
+  .react-loop .node.act { border-color: var(--orange); }
+  .react-loop .node.think { border-color: var(--accent-2); }
+  .react-loop .node.final { border-color: var(--yellow); }
+  .react-loop .node .emoji { font-size: 1.4rem; display: block; }
+  .react-loop .arrow { color: var(--accent); font-size: 1.4rem; }
+
+  footer {
+    text-align: center;
+    color: var(--text-dim);
+    padding: 26px 16px;
+    font-size: 0.92rem;
+  }
+
+  @media (max-width: 700px) {
+    header h1 { font-size: 1.6rem; }
+    section { padding: 18px; }
+    .react-loop .cycle { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+<header>
+  <h1>Stage 3 — ReAct Single Agent</h1>
+  <p class="subtitle">Vòng lặp Think → Act → Observe tự động với <code>create_react_agent</code></p>
+  <div class="meta">
+    <span>⭐⭐⭐ Nâng cao</span>
+    <span>25 phút</span>
+    <span>LangGraph · prebuilt</span>
+  </div>
+</header>
+
+<section>
+  <h2>1. Ý tưởng — ReAct là gì?</h2>
+  <p><strong>ReAct = Reasoning + Acting</strong>. Thay vì bạn viết tay 1 vòng tool-call (như Stage 2), agent tự lặp:</p>
+
+  <div class="react-loop">
+    <div class="cycle">
+      <div class="node think"><span class="emoji">🧠</span><strong>THINK</strong><br><small>Suy luận: cần gì?</small></div>
+      <div class="arrow">→</div>
+      <div class="node act"><span class="emoji">⚡</span><strong>ACT</strong><br><small>Gọi tool</small></div>
+      <div class="arrow">→</div>
+      <div class="node observe"><span class="emoji">👁️</span><strong>OBSERVE</strong><br><small>Đọc kết quả</small></div>
+      <div class="arrow">↻</div>
+      <div class="node final"><span class="emoji">✅</span><strong>ANSWER</strong><br><small>Đủ thông tin?</small></div>
+    </div>
+  </div>
+
+  <p>Khác biệt cốt lõi với Stage 2:</p>
+  <ul>
+    <li>Stage 2 — vòng lặp <strong>1 lần</strong>, do code điều khiển</li>
+    <li>Stage 3 — vòng lặp <strong>N lần</strong>, do LLM tự quyết khi nào dừng</li>
+  </ul>
+</section>
+
+<section>
+  <h2>2. Code chính</h2>
+  <p><strong>File:</strong> <code>stages/stage_3_single_agent/main.py</code></p>
+
+<pre><code>from langgraph.prebuilt import create_react_agent
+
+llm = get_llm()
+agent = create_react_agent(
+    model=llm,
+    tools=TOOLS,
+    prompt=SYSTEM_PROMPT,
+)
+
+inputs = {"messages": [{"role": "user", "content": QUESTION}]}
+
+# Cách 1: lấy kết quả cuối
+result = await agent.ainvoke(inputs)
+print(result["messages"][-1].content)
+
+# Cách 2: stream từng step (xem được reasoning)
+async for chunk in agent.astream(inputs, stream_mode="updates"):
+    for node_name, update in chunk.items():
+        for msg in update.get("messages", []):
+            # phân loại msg: tool_calls / tool / ai / human
+            ...
+</code></pre>
+
+  <div class="info-box warn">
+    <strong>⚠️ Lưu ý API:</strong> <code>create_react_agent</code> đã được di chuyển từ <code>langgraph.prebuilt</code> sang <code>langchain.agents</code> (deprecation warning ở LangGraph 1.0). Code vẫn chạy nhưng nên cập nhật khi lên LangGraph v2.
+  </div>
+</section>
+
+<section>
+  <h2>3. Hai node graph mặc định</h2>
+  <p><code>create_react_agent</code> tạo ra một graph cực kỳ đơn giản:</p>
+
+  <div class="ascii">      ┌──────────┐
+      │  START   │
+      └────┬─────┘
+           ▼
+      ┌──────────┐
+      │  agent   │ ← LLM, có thể tool_calls
+      └────┬─────┘
+           │
+      ┌────┴─────┐
+      │  decide  │
+      └─┬──────┬─┘
+        │      │
+   có tool│      │không tool
+        ▼      ▼
+   ┌────────┐  ┌──────┐
+   │ tools  │  │ END  │ → final answer
+   └────┬───┘  └──────┘
+        │
+        └─→ quay lại agent</div>
+
+  <table>
+    <thead><tr><th>Node</th><th>Vai trò</th></tr></thead>
+    <tbody>
+      <tr><td><code>agent</code></td><td>Gọi LLM. Trả về AIMessage có thể chứa <code>tool_calls</code> hoặc <code>content</code> (final answer)</td></tr>
+      <tr><td><code>tools</code></td><td>Execute mọi tool LLM yêu cầu (chạy song song trong cùng vòng). Trả ToolMessage</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section>
+  <h2>4. So sánh Stage 2 vs Stage 3</h2>
+  <table>
+    <thead><tr><th>Khía cạnh</th><th>Stage 2 — Manual loop</th><th>Stage 3 — ReAct agent</th></tr></thead>
+    <tbody>
+      <tr><td>Vòng tool call</td><td>1 (cố định)</td><td>N (LLM tự quyết)</td></tr>
+      <tr><td>Code orchestration</td><td>Viết tay 3 bước</td><td>1 dòng <code>create_react_agent()</code></td></tr>
+      <tr><td>Tự refine query?</td><td>❌ Không</td><td>✅ Có — search lại nếu kết quả không đủ</td></tr>
+      <tr><td>Multi-step planning</td><td>❌ Không</td><td>✅ Có — gọi tool A → đọc → gọi tool B với args từ A</td></tr>
+      <tr><td>Parallel tool calls</td><td>1 batch duy nhất</td><td>Có thể nhiều batch (vd 3 search + 2 calculate)</td></tr>
+      <tr><td>Số dòng code</td><td>~40 dòng tool loop</td><td>~5 dòng setup</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section>
+  <h2>5. Bài tập đã hoàn thành</h2>
+
+  <h3>Exercise 3.1 — Thêm tool <code>search_case_law</code></h3>
+  <p><strong>File:</strong> <code>exercises/exercise_3_1_case_law.py</code></p>
+  <p>Agent có <strong>3 tools</strong>: tra statutes, tra <strong>án lệ</strong> (case law), và calculate damages. Mỗi tool có domain riêng biệt.</p>
+
+  <h4>Knowledge base án lệ mới</h4>
+  <ul>
+    <li>Hadley v. Baxendale (1854) — consequential damages</li>
+    <li>Donoghue v. Stevenson (1932) — duty of care</li>
+    <li>Carlill v. Carbolic Smoke Ball (1893) — unilateral contract</li>
+    <li>PepsiCo v. Redmond (1995) — inevitable disclosure doctrine</li>
+    <li>Winter v. NRDC (2008) — preliminary injunction standard</li>
+  </ul>
+
+  <h4>Kết quả thực nghiệm</h4>
+  <div class="info-box quote">
+    <strong>Câu hỏi:</strong> <em>"A former employee took confidential customer lists and joined a competitor. We had an NDA worth $200K. What statutes apply, what landmark cases support an injunction, and what damages can we expect?"</em>
+  </div>
+
+  <p>Agent gọi <strong>cả 3 tools song song trong cùng 1 step</strong>:</p>
+<pre><code>[Step 1] 🧠 THINK + ⚡ ACT
+  🔧 search_legal_database({'query': 'trade secret misappropriation statutes'})
+  🔧 search_case_law({'topic': 'injunction trade secret misappropriation'})
+  🔧 calculate_damages({'breach_type': 'willful', 'contract_value': 200000})
+
+[Step 2-4] 👁️  OBSERVE (3 kết quả từ 3 tools)
+
+[Step 5] ✅ FINAL ANSWER  → cite DTSA + PepsiCo v. Redmond + Winter test
+                          + damages $400K (2x willful multiplier)</code></pre>
+
+  <div class="info-box tip">
+    <strong>💡 Đây là điểm khác biệt then chốt với Stage 2:</strong> agent đọc system prompt "cite BOTH statute AND case", tự lên kế hoạch gọi đủ 3 tools cùng lúc — Stage 2 sẽ chỉ gọi 1 tool/turn.
+  </div>
+
+  <h3>Exercise 3.2 — Debug agent reasoning</h3>
+  <p><strong>File:</strong> <code>exercises/exercise_3_2_reasoning.py</code></p>
+  <p>Codelab gốc nói "thêm <code>verbose=True</code>" nhưng API mới không có param này. Thay vào đó, bài này so sánh 2 cách chạy agent:</p>
+
+  <h4>Cách (A) — invoke() — silent</h4>
+  <div class="info-box">
+    <strong>Output:</strong> <em>"Số thuế thu nhập doanh nghiệp phải nộp là $200,000.00."</em><br>
+    → Bạn không biết agent đã làm gì để ra số này.
+  </div>
+
+  <h4>Cách (B) — astream() — full reasoning trace</h4>
+<pre><code>┌─ [Step 1] 🧠 THINK + ⚡ ACT
+│   Quyết định gọi: get_tax_rate
+│   Với args:        {'country': 'Vietnam'}
+└─
+
+┌─ [Step 2] 👁️  OBSERVE
+│   Kết quả từ tool: 20% (standard corporate income tax)
+└─
+
+┌─ [Step 3] 🧠 THINK + ⚡ ACT       ← agent tự parse "20%" → rate=20
+│   Quyết định gọi: calculate_tax
+│   Với args:        {'revenue': 1000000, 'rate_percent': 20}
+└─
+
+┌─ [Step 4] 👁️  OBSERVE
+│   Kết quả từ tool: Tax on $1,000,000.00 at 20.0% = $200,000.00
+└─
+
+┌─ [Step 5] ✅ FINAL ANSWER</code></pre>
+
+  <div class="info-box tip">
+    <strong>💡 Đây chính là multi-step planning</strong> mà Stage 2 không làm được: agent dùng output của tool 1 (string "20%") làm input cho tool 2 (số 20). Stage 2 thì user phải tự nối tay 2 lệnh.
+  </div>
+
+  <h4>Khi nào dùng cái nào?</h4>
+  <table>
+    <thead><tr><th>Mode</th><th>Khi nào dùng</th></tr></thead>
+    <tbody>
+      <tr><td><code>ainvoke()</code></td><td>Production — chỉ cần kết quả cuối</td></tr>
+      <tr><td><code>astream(stream_mode="updates")</code></td><td>Debug — xem từng step ReAct</td></tr>
+      <tr><td><code>astream(stream_mode="messages")</code></td><td>UI streaming — gửi từng token về frontend</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section>
+  <h2>6. Hạn chế Stage 3 → động lực cho Stage 4</h2>
+  <table>
+    <thead><tr><th>Hạn chế Stage 3</th><th>Stage 4 (Multi-agent) giải quyết</th></tr></thead>
+    <tbody>
+      <tr><td>Một agent ôm hết domains (law + tax + compliance)</td><td>Tách mỗi domain ra agent riêng có prompt chuyên biệt</td></tr>
+      <tr><td>System prompt dài, dễ "loãng" với nhiều ràng buộc</td><td>Mỗi agent prompt ngắn, focus 1 lĩnh vực</td></tr>
+      <tr><td>Tools sequential trong cùng agent</td><td><code>Send()</code> API dispatch nhiều agents song song</td></tr>
+      <tr><td>Khó scale — thêm domain = thêm tool/prompt vào 1 agent</td><td>Thêm domain = thêm 1 agent node riêng</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section>
+  <h2>7. Cách chạy</h2>
+<pre><code># Demo gốc Stage 3
+python stages/stage_3_single_agent/main.py
+
+# Bài 3.1 — thêm tool search_case_law (3 tools, multi-domain)
+python exercises/exercise_3_1_case_law.py
+
+# Bài 3.2 — debug reasoning (so sánh invoke vs astream)
+python exercises/exercise_3_2_reasoning.py</code></pre>
+</section>
+
+<section>
+  <h2>8. Câu hỏi tự kiểm tra</h2>
+  <ol>
+    <li>Tại sao <code>create_react_agent</code> chỉ tạo 2 node (<code>agent</code> + <code>tools</code>) mà đủ làm vòng lặp N bước?</li>
+    <li>Nếu LLM bị "kẹt" gọi tool mãi không dừng (vd 50 lần), làm thế nào để cap số lượng?</li>
+    <li>Khi nào agent tự gọi nhiều tools <em>song song</em>, khi nào gọi <em>tuần tự</em>?</li>
+    <li>Sự khác biệt giữa <code>stream_mode="updates"</code> vs <code>"values"</code> vs <code>"messages"</code>?</li>
+    <li>Một single ReAct agent có thể thay thế cho multi-agent không? Trade-off là gì?</li>
+  </ol>
+</section>
+
+<section>
+  <h2>9. Files liên quan</h2>
+  <div class="ascii">stages/stage_3_single_agent/main.py        # Demo gốc — ReAct agent
+exercises/exercise_3_1_case_law.py         # Bài 3.1 — thêm search_case_law
+exercises/exercise_3_2_reasoning.py        # Bài 3.2 — debug reasoning trace
+common/llm.py                              # get_llm() (multi-provider)</div>
+</section>
+
+<footer>
+  <p>📘 Stage 3 Summary · Batch 02 — Ngày 9 · Multi-Agent System với A2A Protocol</p>
+</footer>
+
+</div>
+
+</body>
+</html>
