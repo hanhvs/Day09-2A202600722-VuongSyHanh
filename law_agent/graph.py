@@ -118,8 +118,9 @@ async def check_routing(state: LawState) -> dict:
 def route_to_subagents(state: LawState) -> list[Send]:
     """Routing function: dispatch parallel Send objects based on routing flags.
 
-    This function is used with add_conditional_edges; it returns a list of
-    Send objects which LangGraph executes as parallel branches.
+    OPTIMIZATION v2: dropped analyze_law entirely — the aggregator's synthesis
+    LLM call already produces the legal framing from specialist outputs,
+    so a dedicated lead-attorney pass is redundant.
     """
     sends: list[Send] = []
     if state.get("needs_tax"):
@@ -127,7 +128,6 @@ def route_to_subagents(state: LawState) -> list[Send]:
     if state.get("needs_compliance"):
         sends.append(Send("call_compliance", state))
     if not sends:
-        # No sub-agents needed — go straight to aggregation
         sends.append(Send("aggregate", state))
     return sends
 
@@ -218,11 +218,10 @@ def create_graph():
     graph.add_node("call_compliance", call_compliance)
     graph.add_node("aggregate", aggregate)
 
-    graph.set_entry_point("analyze_law")
-    graph.add_edge("analyze_law", "check_routing")
+    # OPTIMIZATION v2: dropped analyze_law node entirely. Aggregator synthesizes
+    # legal framing from specialist outputs in its existing LLM call.
+    graph.set_entry_point("check_routing")
 
-    # Conditional parallel dispatch: after check_routing, route_to_subagents
-    # returns a list of Send objects (to call_tax, call_compliance, or aggregate)
     graph.add_conditional_edges(
         "check_routing",
         route_to_subagents,
